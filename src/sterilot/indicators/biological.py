@@ -15,7 +15,7 @@ before they went in and the test proved nothing.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from enum import Enum
 
 from sterilot.errors import ValidationError
@@ -143,9 +143,10 @@ class BiologicalResult:
 
     @property
     def window(self) -> Window:
+        readout = self.indicator.readout
         return Window(
-            self.started_at + _delta(self.indicator.readout.minimum),
-            self.started_at + _delta(self.indicator.readout.maximum),
+            self.started_at + timedelta(seconds=readout.minimum.seconds),
+            self.started_at + timedelta(seconds=readout.maximum.seconds),
         )
 
     @property
