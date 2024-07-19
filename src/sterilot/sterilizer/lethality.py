@@ -13,9 +13,9 @@ fifteen is ten log reductions and an F0 of sixty is forty.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 
+from sterilot import lethality
 from sterilot.errors import ValidationError
 from sterilot.tolerance import Band, Reading
 from sterilot.trace import Trace
@@ -34,9 +34,7 @@ TERMINAL_FLOOR_MINUTES = 15.0
 
 def lethal_rate(reading: Temperature, reference: float = REFERENCE_C, z: float = Z_VALUE) -> float:
     """Minutes of credit each real minute earns at ``reading``."""
-    if z <= 0:
-        raise ValidationError("the z value has to be positive", z=z)
-    return float(10.0 ** ((reading.celsius - reference) / z))
+    return lethality.rate(reading, reference, z)
 
 
 def f0_of_hold(
@@ -46,13 +44,12 @@ def f0_of_hold(
     z: float = Z_VALUE,
 ) -> float:
     """F0 in minutes for a square hold."""
-    return lethal_rate(reading, reference, z) * held.minutes
+    return lethality.of_hold(reading, held, reference, z) / 60.0
 
 
 def f0_of_trace(trace: Trace, reference: float = REFERENCE_C, z: float = Z_VALUE) -> float:
     """F0 in minutes, integrated over a real trace."""
-    seconds = trace.integrate(lambda reading: lethal_rate(reading, reference, z))
-    return seconds / 60.0
+    return lethality.of_trace(trace, reference, z) / 60.0
 
 
 def hold_for(
@@ -62,10 +59,7 @@ def hold_for(
     z: float = Z_VALUE,
 ) -> Duration:
     """How long ``reading`` has to be held for an F0 of ``target`` minutes."""
-    if target <= 0:
-        raise ValidationError("an F0 target is a positive number", target=target)
-    rate = lethal_rate(reading, reference, z)
-    return Duration.of_minutes(target / rate)
+    return lethality.hold_for(reading, target * 60.0, reference, z)
 
 
 def log_reduction(f0_minutes: float, d_value: float = STEAROTHERMOPHILUS_D121) -> float:
@@ -159,8 +153,4 @@ def evaluate(trace: Trace, floor: float = TERMINAL_FLOOR_MINUTES) -> F0Result:
 
 def equivalent_temperature(held: Duration, f0_minutes: float) -> Temperature:
     """The flat temperature that would deliver ``f0_minutes`` in ``held``."""
-    if held.seconds <= 0:
-        raise ValidationError("a hold has to last", seconds=held.seconds)
-    if f0_minutes <= 0:
-        raise ValidationError("F0 is a positive number", f0=f0_minutes)
-    return Temperature(REFERENCE_C + Z_VALUE * math.log10(f0_minutes / held.minutes))
+    return lethality.flat_temperature(held, f0_minutes * 60.0, REFERENCE_C, Z_VALUE)

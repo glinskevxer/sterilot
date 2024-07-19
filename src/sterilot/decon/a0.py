@@ -14,9 +14,9 @@ and on a machine with a tired heating element those are different numbers.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass
 
+from sterilot import lethality
 from sterilot.errors import ValidationError
 from sterilot.tolerance import Band, Reading
 from sterilot.trace import Trace
@@ -35,9 +35,7 @@ ELEVATED_FLOOR = 3000.0
 
 def lethal_rate(reading: Temperature, reference: float = REFERENCE_C, z: float = Z_VALUE) -> float:
     """Seconds of credit each real second earns at ``reading``."""
-    if z <= 0:
-        raise ValidationError("the z value has to be positive", z=z)
-    return float(10.0 ** ((reading.celsius - reference) / z))
+    return lethality.rate(reading, reference, z)
 
 
 def a0_of_hold(
@@ -47,12 +45,12 @@ def a0_of_hold(
     z: float = Z_VALUE,
 ) -> float:
     """A0 for a square hold, which is what a spec sheet describes."""
-    return lethal_rate(reading, reference, z) * held.seconds
+    return lethality.of_hold(reading, held, reference, z)
 
 
 def a0_of_trace(trace: Trace, reference: float = REFERENCE_C, z: float = Z_VALUE) -> float:
     """A0 integrated over a real trace."""
-    return trace.integrate(lambda reading: lethal_rate(reading, reference, z))
+    return lethality.of_trace(trace, reference, z)
 
 
 def hold_for(
@@ -62,12 +60,7 @@ def hold_for(
     z: float = Z_VALUE,
 ) -> Duration:
     """How long ``reading`` has to be held to reach ``target``."""
-    if target <= 0:
-        raise ValidationError("an A0 target is a positive number", target=target)
-    rate = lethal_rate(reading, reference, z)
-    if rate <= 0:
-        raise ValidationError("that temperature earns no credit", celsius=reading.celsius)
-    return Duration(target / rate)
+    return lethality.hold_for(reading, target, reference, z)
 
 
 def temperature_for(
@@ -77,11 +70,7 @@ def temperature_for(
     z: float = Z_VALUE,
 ) -> Temperature:
     """The flat temperature that reaches ``target`` in ``held``."""
-    if held.seconds <= 0:
-        raise ValidationError("a hold has to last", seconds=held.seconds)
-    if target <= 0:
-        raise ValidationError("an A0 target is a positive number", target=target)
-    return Temperature(reference + z * math.log10(target / held.seconds))
+    return lethality.flat_temperature(held, target, reference, z)
 
 
 @dataclass(frozen=True)
