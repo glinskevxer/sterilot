@@ -13,6 +13,7 @@ from sterilot.indicators.chemical import (
     Outcome,
     Placement,
 )
+from sterilot.interval import DateRange
 from sterilot.load.build import Load, LoadItem
 from sterilot.load.release import (
     BiologicalOutcome,
@@ -22,6 +23,8 @@ from sterilot.load.release import (
 )
 from sterilot.methods import Method
 from sterilot.settings import Settings
+from sterilot.staff.competency import Competency, CompetencyFile, Task
+from sterilot.staff.tech import Certification, Role, Technician
 from sterilot.sterilizer.cycle import SterilizerCycle
 from sterilot.sterilizer.equipment import Sterilizer
 from sterilot.sterilizer.parameters import CycleMeasurements, CycleSpec
@@ -285,3 +288,90 @@ def test_the_decision_carries_who_and_when() -> None:
 def test_only_three_kinds_count_as_released() -> None:
     released = {kind for kind in ReleaseKind if kind.released}
     assert released == {ReleaseKind.ROUTINE, ReleaseKind.IMPLANT, ReleaseKind.EMERGENCY}
+
+
+def certified(badge: str = "T-4471", role: Role = Role.TECHNICIAN) -> Technician:
+    return Technician(
+        badge,
+        "R Ferreira",
+        role,
+        certifications=(
+            Certification("HSPA", "CRCST-1", DateRange(date(2023, 1, 1), date(2026, 1, 1))),
+        ),
+    )
+
+
+def signed_off(badge: str = "T-4471") -> CompetencyFile:
+    return CompetencyFile.of(
+        [Competency(badge, Task.RELEASE, date(2024, 3, 1), "T-9500", observations=3)]
+    )
+
+
+def test_a_certified_releaser_changes_nothing() -> None:
+    decision = decide(request(releaser=certified(), competencies=signed_off()))
+    assert decision.kind is ReleaseKind.ROUTINE
+
+
+def test_a_trainee_cannot_sign_a_release() -> None:
+    decision = decide(request(releaser=certified(role=Role.TRAINEE)))
+    assert decision.kind is ReleaseKind.REJECTED
+    assert "a trainee does not sign a release" in decision.reasons
+
+
+def test_a_releaser_without_the_competency_is_refused() -> None:
+    decision = decide(request(releaser=certified(), competencies=CompetencyFile()))
+    assert decision.kind is ReleaseKind.REJECTED
+    assert "T-4471 has never been assessed on release" in decision.reasons
+
+
+def test_the_signature_and_the_badge_have_to_agree() -> None:
+    decision = decide(request(by="T-9002", releaser=certified(), competencies=signed_off()))
+    assert decision.kind is ReleaseKind.REJECTED
+    assert "the release is signed T-9002 and countersigned T-4471" in decision.reasons
+
+
+def test_an_early_release_needs_a_lead_to_authorise_it() -> None:
+    implant = load(items=(LoadItem("IMP-0001", "IMP-KNEE", implant=True),))
+    decision = decide(
+        request(
+            load=implant,
+            chemical={"IMP-0001": (strip(Placement.EXTERNAL), strip())},
+            emergency_justification="trauma case",
+            authoriser=certified("T-9002", Role.TECHNICIAN),
+        )
+    )
+    assert decision.kind is ReleaseKind.HELD
+    assert "a technician does not authorise an early release" in decision.reasons
+
+
+def test_an_early_release_authorised_by_a_lead_goes_through() -> None:
+    implant = load(items=(LoadItem("IMP-0001", "IMP-KNEE", implant=True),))
+    decision = decide(
+        request(
+            load=implant,
+            chemical={"IMP-0001": (strip(Placement.EXTERNAL), strip())},
+            emergency_justification="trauma case",
+            releaser=certified(),
+            competencies=signed_off(),
+            authoriser=certified("T-9002", Role.LEAD),
+        )
+    )
+    assert decision.kind is ReleaseKind.EMERGENCY
+    assert "released early by T-9002: trauma case" in decision.reasons
+
+
+def test_the_same_badge_cannot_release_and_authorise() -> None:
+    implant = load(items=(LoadItem("IMP-0001", "IMP-KNEE", implant=True),))
+    lead = certified("T-4471", Role.LEAD)
+    decision = decide(
+        request(
+            load=implant,
+            chemical={"IMP-0001": (strip(Placement.EXTERNAL), strip())},
+            emergency_justification="trauma case",
+            releaser=lead,
+            competencies=signed_off(),
+            authoriser=lead,
+        )
+    )
+    assert decision.kind is ReleaseKind.HELD
+    assert "an early release needs a second badge" in decision.reasons
