@@ -7,8 +7,10 @@ import pytest
 from sterilot.catalog.instrument import Complexity, Criticality, Instrument
 from sterilot.catalog.material import material_named
 from sterilot.catalog.revision import RevisionHistory
+from sterilot.catalog.substitution import Substitution, SubstitutionTable
 from sterilot.catalog.tray import CountLine, CountSheet
-from sterilot.errors import NotFoundError
+from sterilot.errors import IntegrityError, NotFoundError
+from sterilot.interval import DateRange
 from sterilot.store.catalog_repo import CatalogStore
 from sterilot.store.db import Database
 from sterilot.store.migrations import migrate
@@ -171,4 +173,59 @@ def test_set_codes_are_listed() -> None:
     catalog.save_instrument(forceps())
     catalog.save_history(RevisionHistory.started(sheet(), date(2024, 1, 1)))
     assert catalog.set_codes() == ("ORT-MAJOR",)
+    catalog.db.close()
+
+
+def approval(
+    original: str = "SU-1234", replacement: str = "SU-9001", end: date | None = None
+) -> Substitution:
+    return Substitution(original, replacement, "T-4471", DateRange(date(2024, 1, 1), end))
+
+
+def test_substitutions_round_trip() -> None:
+    catalog = store()
+    catalog.save_instrument(forceps())
+    catalog.save_instrument(suction())
+    catalog.save_substitutions(SubstitutionTable.of([approval()]))
+    table = catalog.substitutions()
+    assert table.accepts("SU-1234", "SU-9001", date(2024, 5, 1))
+    catalog.db.close()
+
+
+def test_a_closed_approval_keeps_its_end_date() -> None:
+    catalog = store()
+    catalog.save_instrument(forceps())
+    catalog.save_instrument(suction())
+    catalog.save_substitutions(SubstitutionTable.of([approval(end=date(2024, 3, 1))]))
+    table = catalog.substitutions()
+    assert table.accepts("SU-1234", "SU-9001", date(2024, 2, 1))
+    assert not table.accepts("SU-1234", "SU-9001", date(2024, 5, 1))
+    catalog.db.close()
+
+
+def test_saving_the_approval_list_replaces_it() -> None:
+    catalog = store()
+    catalog.save_instrument(forceps())
+    catalog.save_instrument(suction())
+    catalog.save_substitutions(SubstitutionTable.of([approval()]))
+    catalog.save_substitutions(SubstitutionTable())
+    assert catalog.substitutions().entries == ()
+    catalog.db.close()
+
+
+def test_approvals_are_read_back_for_one_item() -> None:
+    catalog = store()
+    catalog.save_instrument(forceps())
+    catalog.save_instrument(suction())
+    catalog.save_substitutions(SubstitutionTable.of([approval()]))
+    found = catalog.substitutions_for("su 1234", date(2024, 5, 1))
+    assert [entry.replacement for entry in found] == ["SU-9001"]
+    catalog.db.close()
+
+
+def test_an_approval_naming_an_unstocked_item_is_refused_by_the_database() -> None:
+    catalog = store()
+    catalog.save_instrument(forceps())
+    with pytest.raises(IntegrityError):
+        catalog.save_substitutions(SubstitutionTable.of([approval()]))
     catalog.db.close()

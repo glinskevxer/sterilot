@@ -7,12 +7,14 @@ the only question the assembly bench ever has.
 
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import dataclass
 from datetime import date
 
 from sterilot.catalog.instrument import Complexity, Criticality, Instrument
 from sterilot.catalog.material import material_named
 from sterilot.catalog.revision import Revision, RevisionHistory
+from sterilot.catalog.substitution import Substitution, SubstitutionTable
 from sterilot.catalog.tray import CountLine, CountSheet
 from sterilot.errors import NotFoundError
 from sterilot.ids import catalog_number, tray_code
@@ -131,10 +133,9 @@ class CatalogStore:
         revisions = tuple(self._revision(row) for row in found)
         return RevisionHistory(wanted, revisions)
 
-    def _revision(self, row: object) -> Revision:
-        assert hasattr(row, "keys")
-        code = rows.get_text(row, "code")  # type: ignore[arg-type]
-        number = rows.get_int(row, "revision")  # type: ignore[arg-type]
+    def _revision(self, row: sqlite3.Row) -> Revision:
+        code = rows.get_text(row, "code")
+        number = rows.get_int(row, "revision")
         lines = self.db.query(
             "SELECT catalog, quantity, position, required FROM sheet_line"
             " WHERE code = ? AND revision = ? ORDER BY catalog",
@@ -142,7 +143,7 @@ class CatalogStore:
         )
         sheet = CountSheet.of(
             code,
-            rows.get_text(row, "name"),  # type: ignore[arg-type]
+            rows.get_text(row, "name"),
             [
                 CountLine(
                     self.instrument(rows.get_text(line, "catalog")),
@@ -152,13 +153,13 @@ class CatalogStore:
                 )
                 for line in lines
             ],
-            row["container"],  # type: ignore[index]
+            _optional_text(row["container"]),
         )
         window = DateRange(
-            rows.get_date(row, "starts_on"),  # type: ignore[arg-type]
-            rows.get_date_or_none(row, "ends_on"),  # type: ignore[arg-type]
+            rows.get_date(row, "starts_on"),
+            rows.get_date_or_none(row, "ends_on"),
         )
-        return Revision(number, sheet, window, rows.get_text_or_empty(row, "note"))  # type: ignore[arg-type]
+        return Revision(number, sheet, window, rows.get_text_or_empty(row, "note"))
 
     def sheet(self, code: str, day: date) -> CountSheet:
         return self.history(code).at(day).sheet
@@ -167,6 +168,52 @@ class CatalogStore:
         found = self.db.query("SELECT DISTINCT code FROM sheet ORDER BY code")
         return tuple(str(row["code"]) for row in found)
 
+    def save_substitutions(self, table: SubstitutionTable) -> None:
+        """Replace the whole approval list, which is how it is maintained."""
+        with self.db.transaction():
+            self.db.execute("DELETE FROM substitution")
+            self.db.execute_many(
+                "INSERT INTO substitution (original, replacement, starts_on, ends_on, ratio,"
+                " approved_by, reason) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [
+                    [
+                        entry.original,
+                        entry.replacement,
+                        rows.put_date(entry.effective.start),
+                        rows.put_date(entry.effective.end),
+                        entry.ratio,
+                        entry.approved_by,
+                        entry.reason,
+                    ]
+                    for entry in table.entries
+                ],
+            )
+
+    def substitutions(self) -> SubstitutionTable:
+        found = self.db.query(
+            "SELECT original, replacement, starts_on, ends_on, ratio, approved_by, reason"
+            " FROM substitution ORDER BY original, replacement, starts_on"
+        )
+        return SubstitutionTable.of(_substitution(row) for row in found)
+
+    def substitutions_for(self, catalog: str, day: date) -> tuple[Substitution, ...]:
+        return self.substitutions().for_original(catalog, day)
+
+
+def _substitution(row: sqlite3.Row) -> Substitution:
+    return Substitution(
+        original=rows.get_text(row, "original"),
+        replacement=rows.get_text(row, "replacement"),
+        approved_by=rows.get_text(row, "approved_by"),
+        effective=DateRange(rows.get_date(row, "starts_on"), rows.get_date_or_none(row, "ends_on")),
+        ratio=rows.get_int(row, "ratio"),
+        reason=rows.get_text_or_empty(row, "reason"),
+    )
+
 
 def _optional_float(value: object) -> float | None:
-    return None if value is None else float(value)  # type: ignore[arg-type]
+    return None if value is None else float(str(value))
+
+
+def _optional_text(value: object) -> str | None:
+    return None if value is None else str(value)
