@@ -14,6 +14,7 @@ from pathlib import Path
 import click
 
 from sterilot import __version__
+from sterilot.cli.catalog_cmd import catalog
 from sterilot.cli.context import Context, default_db_path
 from sterilot.errors import SterilotError
 from sterilot.reporting.render import pairs
@@ -93,6 +94,9 @@ def health(context: Context) -> None:
 def where() -> None:
     """Print the database path this build would use by default."""
     click.echo(str(default_db_path()))
+
+
+main.add_command(catalog)
 
 
 def run() -> None:  # pragma: no cover
