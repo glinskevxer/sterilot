@@ -19,6 +19,10 @@ from sterilot.ids import asset_tag, tray_code
 from sterilot.store import rows
 from sterilot.store.db import Database
 
+_LATEST_EVENT = (
+    "SELECT rowid FROM tray_event WHERE asset = t.asset ORDER BY at DESC, rowid DESC LIMIT 1"
+)
+
 
 @dataclass
 class TrayStore:
@@ -67,7 +71,8 @@ class TrayStore:
                 rows.get_text_or_empty(event, "note"),
             )
             for event in self.db.query(
-                "SELECT at, stage, by_badge, note FROM tray_event WHERE asset = ? ORDER BY at",
+                "SELECT at, stage, by_badge, note FROM tray_event WHERE asset = ?"
+                " ORDER BY at, rowid",
                 [asset],
             )
         )
@@ -94,12 +99,15 @@ class TrayStore:
         return tuple(self._build(row) for row in found)
 
     def in_stage(self, stage: Stage) -> tuple[TrayInstance, ...]:
-        """Trays whose most recent event puts them in ``stage``."""
+        """Trays whose most recent event puts them in ``stage``.
+
+        Two moves can land in the same second, so the latest event is the last
+        row written rather than the one with the highest timestamp.
+        """
         found = self.db.query(
             "SELECT t.asset, t.code, t.ownership, t.owner, t.retired_on FROM tray t"
-            " JOIN tray_event e ON e.asset = t.asset"
-            " WHERE e.at = (SELECT max(at) FROM tray_event WHERE asset = t.asset)"
-            "   AND e.stage = ?"
+            f" JOIN tray_event e ON e.rowid = ({_LATEST_EVENT})"
+            " WHERE e.stage = ?"
             " ORDER BY t.asset",
             [stage.value],
         )
@@ -122,8 +130,7 @@ class TrayStore:
     def counts_by_stage(self) -> dict[Stage, int]:
         found = self.db.query(
             "SELECT e.stage AS stage, count(*) AS total FROM tray t"
-            " JOIN tray_event e ON e.asset = t.asset"
-            " WHERE e.at = (SELECT max(at) FROM tray_event WHERE asset = t.asset)"
+            f" JOIN tray_event e ON e.rowid = ({_LATEST_EVENT})"
             " GROUP BY e.stage"
         )
         return {rows.get_enum(row, "stage", Stage): rows.get_int(row, "total") for row in found}

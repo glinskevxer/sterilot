@@ -119,3 +119,15 @@ def test_a_retired_tray_keeps_its_date() -> None:
     trays.save(tray().retired_on_day(date(2024, 6, 1), "T-4471"))
     assert trays.get("ORT-0114").retired_on == date(2024, 6, 1)
     trays.db.close()
+
+
+def test_two_moves_in_the_same_second_still_read_in_order() -> None:
+    trays = store()
+    item = tray()
+    item = item.moved_to(Stage.DECONTAMINATION, START, "T-4471")
+    item = item.moved_to(Stage.CLEAN, START, "T-4471")
+    trays.save(item)
+    assert trays.get("ORT-0114").stage is Stage.CLEAN
+    assert [found.asset for found in trays.in_stage(Stage.CLEAN)] == ["ORT-0114"]
+    assert trays.counts_by_stage() == {Stage.CLEAN: 1}
+    trays.db.close()

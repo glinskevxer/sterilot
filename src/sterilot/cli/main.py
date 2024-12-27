@@ -16,6 +16,7 @@ import click
 from sterilot import __version__
 from sterilot.cli.catalog_cmd import catalog
 from sterilot.cli.context import Context, default_db_path
+from sterilot.cli.tray_cmd import tray
 from sterilot.errors import SterilotError
 from sterilot.reporting.render import pairs
 
@@ -97,6 +98,7 @@ def where() -> None:
 
 
 main.add_command(catalog)
+main.add_command(tray)
 
 
 def run() -> None:  # pragma: no cover

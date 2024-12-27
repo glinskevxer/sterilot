@@ -12,6 +12,7 @@ import click
 from sterilot.catalog.instrument import Complexity, Criticality, Instrument
 from sterilot.catalog.material import material_named, standard_materials
 from sterilot.cli.context import Context
+from sterilot.clock import parse_day
 from sterilot.methods import Method
 from sterilot.reporting.render import Column, bullets, pairs, table
 from sterilot.units.mass import Mass
@@ -145,8 +146,6 @@ def sets(context: Context) -> None:
 @click.pass_obj
 def sheet(context: Context, code: str, on_day: str | None) -> None:
     """The count sheet in force on a day."""
-    from sterilot.clock import parse_day
-
     day = parse_day(on_day) if on_day else context.clock.today()
     history = context.store.catalog.history(code)
     revision = history.at(day)
