@@ -30,7 +30,7 @@ def test_a_fresh_database_is_at_version_zero() -> None:
 def test_migrating_applies_everything_in_order() -> None:
     with Database.in_memory() as db:
         done = migrate(db, NOW)
-        assert [item.version for item in done] == [1, 2]
+        assert [item.version for item in done] == [item.version for item in MIGRATIONS]
         assert current_version(db) == latest_version()
         assert pending(db) == ()
 
@@ -62,6 +62,7 @@ def test_the_version_table_records_when_and_what() -> None:
         rows = db.query("SELECT version, applied_at, name FROM schema_version ORDER BY version")
         assert rows[0]["applied_at"] == "2024-11-01T09:00:00"
         assert rows[1]["name"] == "people, storage and the repair bench"
+        assert rows[2]["name"] == "equipment carries its own capability"
 
 
 def test_a_migration_describes_itself() -> None:
@@ -76,7 +77,9 @@ def test_a_partly_migrated_database_finishes_the_rest() -> None:
             [1, NOW.isoformat(), "core records"],
         )
         done = migrate(db, NOW)
-        assert [item.version for item in done] == [2]
+        assert [item.version for item in done] == [
+            item.version for item in MIGRATIONS if item.version > 1
+        ]
 
 
 def test_a_clean_history_has_no_problems() -> None:

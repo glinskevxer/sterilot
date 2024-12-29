@@ -19,6 +19,7 @@ from sterilot.errors import IntegrityError
 from sterilot.store.catalog_repo import CatalogStore
 from sterilot.store.cycle_repo import CycleStore, SpecResolver, standard_spec
 from sterilot.store.db import Database
+from sterilot.store.equipment_repo import EquipmentStore
 from sterilot.store.issue_repo import IssueStore
 from sterilot.store.load_repo import LoadStore
 from sterilot.store.migrations import current_version, latest_version, migrate, problems
@@ -32,6 +33,7 @@ class Store:
 
     db: Database
     catalog: CatalogStore
+    equipment: EquipmentStore
     trays: TrayStore
     cycles: CycleStore
     loads: LoadStore
@@ -44,6 +46,7 @@ class Store:
         return cls(
             db=db,
             catalog=CatalogStore(db),
+            equipment=EquipmentStore(db),
             trays=TrayStore(db),
             cycles=cycles,
             loads=LoadStore(db, cycles),

@@ -114,6 +114,18 @@ CREATE INDEX IF NOT EXISTS repair_by_set ON repair_order (out_of_code, status);
 """
 
 
+VERSION_THREE_SQL = """
+ALTER TABLE equipment ADD COLUMN methods TEXT NOT NULL DEFAULT '';
+ALTER TABLE equipment ADD COLUMN chamber TEXT;
+ALTER TABLE equipment ADD COLUMN chambers INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE equipment ADD COLUMN installed_on TEXT;
+ALTER TABLE equipment ADD COLUMN retired_on TEXT;
+ALTER TABLE equipment ADD COLUMN out_of_order INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE equipment ADD COLUMN qualification_owed INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE equipment ADD COLUMN last_qualification TEXT;
+"""
+
+
 @dataclass(frozen=True)
 class Migration:
     """One numbered step."""
@@ -129,6 +141,7 @@ class Migration:
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "core records", SCHEMA_SQL),
     Migration(2, "people, storage and the repair bench", VERSION_TWO_SQL),
+    Migration(3, "equipment carries its own capability", VERSION_THREE_SQL),
 )
 
 
