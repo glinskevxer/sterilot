@@ -17,6 +17,7 @@ from sterilot import __version__
 from sterilot.cli.catalog_cmd import catalog
 from sterilot.cli.context import Context, default_db_path
 from sterilot.cli.cycle_cmd import cycle
+from sterilot.cli.duty_cmd import duty
 from sterilot.cli.machine_cmd import machine
 from sterilot.cli.tray_cmd import tray
 from sterilot.errors import SterilotError
@@ -101,6 +102,7 @@ def where() -> None:
 
 main.add_command(catalog)
 main.add_command(cycle)
+main.add_command(duty)
 main.add_command(machine)
 main.add_command(tray)
 
