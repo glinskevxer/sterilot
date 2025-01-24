@@ -20,6 +20,7 @@ from sterilot.cli.cycle_cmd import cycle
 from sterilot.cli.duty_cmd import duty
 from sterilot.cli.load_cmd import load
 from sterilot.cli.machine_cmd import machine
+from sterilot.cli.recall_cmd import recall
 from sterilot.cli.tray_cmd import tray
 from sterilot.errors import SterilotError
 from sterilot.reporting.render import pairs
@@ -105,6 +106,7 @@ main.add_command(catalog)
 main.add_command(cycle)
 main.add_command(duty)
 main.add_command(load)
+main.add_command(recall)
 main.add_command(machine)
 main.add_command(tray)
 
