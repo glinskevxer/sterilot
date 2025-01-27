@@ -63,6 +63,7 @@ def test_the_version_table_records_when_and_what() -> None:
         assert rows[0]["applied_at"] == "2024-11-01T09:00:00"
         assert rows[1]["name"] == "people, storage and the repair bench"
         assert rows[2]["name"] == "equipment carries its own capability"
+        assert rows[3]["name"] == "tray events are numbered"
 
 
 def test_a_migration_describes_itself() -> None:
@@ -136,3 +137,72 @@ def test_every_migration_has_a_distinct_version() -> None:
     versions = [migration.version for migration in MIGRATIONS]
     assert versions == sorted(versions)
     assert len(set(versions)) == len(versions)
+
+
+def _apply_through(db: Database, version: int) -> None:
+    for migration in MIGRATIONS:
+        if migration.version > version:
+            break
+        db.script(migration.sql)
+        db.execute(
+            "INSERT INTO schema_version (version, applied_at, name) VALUES (?, ?, ?)",
+            [migration.version, NOW.isoformat(), migration.name],
+        )
+
+
+def test_existing_tray_events_are_numbered_in_order() -> None:
+    with Database.in_memory() as db:
+        _apply_through(db, 3)
+        db.execute(
+            "INSERT INTO tray (asset, code, ownership) VALUES (?, ?, ?)",
+            ["ORT-0114", "ORT-MAJOR", "department"],
+        )
+        db.execute_many(
+            "INSERT INTO tray_event (asset, at, stage, by_badge) VALUES (?, ?, ?, ?)",
+            [
+                ["ORT-0114", "2025-01-28T08:00:00", "soiled", "T-4471"],
+                ["ORT-0114", "2025-01-28T09:00:00", "decontamination", "T-4471"],
+                ["ORT-0114", "2025-01-28T10:00:00", "clean", "T-4471"],
+            ],
+        )
+        migrate(db, NOW)
+        rows = db.query(
+            "SELECT seq, stage FROM tray_event WHERE asset = ? ORDER BY seq", ["ORT-0114"]
+        )
+        assert [row["seq"] for row in rows] == [1, 2, 3]
+        assert [row["stage"] for row in rows] == ["soiled", "decontamination", "clean"]
+
+
+def test_events_of_two_trays_are_numbered_separately() -> None:
+    with Database.in_memory() as db:
+        _apply_through(db, 3)
+        for asset in ("ORT-0114", "ORT-0115"):
+            db.execute(
+                "INSERT INTO tray (asset, code, ownership) VALUES (?, ?, ?)",
+                [asset, "ORT-MAJOR", "department"],
+            )
+            db.execute_many(
+                "INSERT INTO tray_event (asset, at, stage, by_badge) VALUES (?, ?, ?, ?)",
+                [
+                    [asset, "2025-01-28T08:00:00", "soiled", "T-4471"],
+                    [asset, "2025-01-28T09:00:00", "decontamination", "T-4471"],
+                ],
+            )
+        migrate(db, NOW)
+        rows = db.query("SELECT asset, seq FROM tray_event ORDER BY asset, seq")
+        assert [(row["asset"], row["seq"]) for row in rows] == [
+            ("ORT-0114", 1),
+            ("ORT-0114", 2),
+            ("ORT-0115", 1),
+            ("ORT-0115", 2),
+        ]
+
+
+def test_the_numbering_migration_keeps_the_foreign_key() -> None:
+    with Database.in_memory() as db:
+        migrate(db, NOW)
+        with pytest.raises(IntegrityError):
+            db.execute(
+                "INSERT INTO tray_event (asset, seq, at, stage, by_badge) VALUES (?, ?, ?, ?, ?)",
+                ["MISSING", 1, "2025-01-28T08:00:00", "soiled", "T-4471"],
+            )

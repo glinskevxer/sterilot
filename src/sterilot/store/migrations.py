@@ -126,6 +126,28 @@ ALTER TABLE equipment ADD COLUMN last_qualification TEXT;
 """
 
 
+VERSION_FOUR_SQL = """
+CREATE TABLE tray_event_numbered (
+  asset     TEXT    NOT NULL REFERENCES tray(asset),
+  seq       INTEGER NOT NULL,
+  at        TEXT    NOT NULL,
+  stage     TEXT    NOT NULL,
+  by_badge  TEXT    NOT NULL,
+  note      TEXT    NOT NULL DEFAULT '',
+  PRIMARY KEY (asset, seq)
+);
+
+INSERT INTO tray_event_numbered (asset, seq, at, stage, by_badge, note)
+SELECT asset,
+       row_number() OVER (PARTITION BY asset ORDER BY at, rowid),
+       at, stage, by_badge, note
+FROM tray_event;
+
+DROP TABLE tray_event;
+ALTER TABLE tray_event_numbered RENAME TO tray_event;
+"""
+
+
 @dataclass(frozen=True)
 class Migration:
     """One numbered step."""
@@ -142,6 +164,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(1, "core records", SCHEMA_SQL),
     Migration(2, "people, storage and the repair bench", VERSION_TWO_SQL),
     Migration(3, "equipment carries its own capability", VERSION_THREE_SQL),
+    Migration(4, "tray events are numbered", VERSION_FOUR_SQL),
 )
 
 

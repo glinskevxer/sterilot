@@ -131,3 +131,25 @@ def test_two_moves_in_the_same_second_still_read_in_order() -> None:
     assert [found.asset for found in trays.in_stage(Stage.CLEAN)] == ["ORT-0114"]
     assert trays.counts_by_stage() == {Stage.CLEAN: 1}
     trays.db.close()
+
+
+def test_a_tray_reaching_the_same_stage_twice_in_a_second_keeps_both_events() -> None:
+    trays = store()
+    item = tray()
+    for stage in (
+        Stage.DECONTAMINATION,
+        Stage.CLEAN,
+        Stage.ASSEMBLED,
+        Stage.STERILIZING,
+        Stage.COOLING,
+        Stage.STERILE,
+        Stage.ISSUED,
+        Stage.STERILE,
+    ):
+        item = item.moved_to(stage, START, "T-4471")
+    trays.save(item)
+    found = trays.get("ORT-0114")
+    assert found.stage is Stage.STERILE
+    assert len(found.history) == 9
+    assert len(found.events_in(Stage.STERILE)) == 2
+    trays.db.close()

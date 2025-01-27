@@ -4,6 +4,10 @@ A tray is a row plus its history, and the history is append only. Saving a tray
 writes the events it does not already have rather than replacing the run,
 because two benches can move two different trays at the same moment and neither
 should be able to lose the other's work.
+
+Events are numbered rather than keyed on the moment they happened. Timestamps
+are whole seconds and a tray can reach the same stage twice inside one, which
+with a natural key silently dropped the second one.
 """
 
 from __future__ import annotations
@@ -19,9 +23,7 @@ from sterilot.ids import asset_tag, tray_code
 from sterilot.store import rows
 from sterilot.store.db import Database
 
-_LATEST_EVENT = (
-    "SELECT rowid FROM tray_event WHERE asset = t.asset ORDER BY at DESC, rowid DESC LIMIT 1"
-)
+_LATEST_EVENT = "SELECT rowid FROM tray_event WHERE asset = t.asset ORDER BY seq DESC LIMIT 1"
 
 
 @dataclass
@@ -44,11 +46,18 @@ class TrayStore:
                 ],
             )
             self.db.execute_many(
-                "INSERT OR IGNORE INTO tray_event (asset, at, stage, by_badge, note)"
-                " VALUES (?, ?, ?, ?, ?)",
+                "INSERT OR REPLACE INTO tray_event (asset, seq, at, stage, by_badge, note)"
+                " VALUES (?, ?, ?, ?, ?, ?)",
                 [
-                    [tray.asset, rows.put_moment(event.at), event.stage.value, event.by, event.note]
-                    for event in tray.history
+                    [
+                        tray.asset,
+                        number,
+                        rows.put_moment(event.at),
+                        event.stage.value,
+                        event.by,
+                        event.note,
+                    ]
+                    for number, event in enumerate(tray.history, start=1)
                 ],
             )
 
@@ -71,8 +80,7 @@ class TrayStore:
                 rows.get_text_or_empty(event, "note"),
             )
             for event in self.db.query(
-                "SELECT at, stage, by_badge, note FROM tray_event WHERE asset = ?"
-                " ORDER BY at, rowid",
+                "SELECT at, stage, by_badge, note FROM tray_event WHERE asset = ? ORDER BY seq",
                 [asset],
             )
         )
@@ -101,8 +109,8 @@ class TrayStore:
     def in_stage(self, stage: Stage) -> tuple[TrayInstance, ...]:
         """Trays whose most recent event puts them in ``stage``.
 
-        Two moves can land in the same second, so the latest event is the last
-        row written rather than the one with the highest timestamp.
+        Two moves can land in the same second, so the latest event is the one
+        with the highest sequence number rather than the highest timestamp.
         """
         found = self.db.query(
             "SELECT t.asset, t.code, t.ownership, t.owner, t.retired_on FROM tray t"
