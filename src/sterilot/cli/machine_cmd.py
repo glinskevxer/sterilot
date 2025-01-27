@@ -9,6 +9,7 @@ from __future__ import annotations
 import click
 
 from sterilot.cli.context import Context
+from sterilot.clock import parse_day
 from sterilot.decon.washer import Washer, WasherClass
 from sterilot.methods import Method
 from sterilot.quality.log import duties_for_sterilizer, duties_for_washer
@@ -39,8 +40,6 @@ def add_sterilizer(
     installed_on: str | None,
 ) -> None:
     """Register a sterilizer."""
-    from sterilot.clock import parse_day
-
     unit = Sterilizer(
         equipment=equipment,
         model=model,
@@ -71,8 +70,6 @@ def add_washer(
     last_qualification: str | None,
 ) -> None:
     """Register a washer."""
-    from sterilot.clock import parse_day
-
     unit = Washer(
         equipment=equipment,
         model=model,

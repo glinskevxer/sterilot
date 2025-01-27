@@ -11,7 +11,6 @@ import click
 
 from sterilot.cli.context import Context
 from sterilot.clock import parse_day
-from sterilot.ids import LotControlNumber
 from sterilot.indicators.chemical import (
     ChemicalIndicator,
     ChemicalResult,
@@ -204,7 +203,3 @@ def _split(entry: str) -> tuple[str, Outcome]:
         asset, outcome = entry.split("=", 1)
         return asset.strip(), Outcome.named(outcome)
     return entry.strip(), Outcome.PASS
-
-
-def lot_of(text: str) -> LotControlNumber:
-    return LotControlNumber.parse(text)
