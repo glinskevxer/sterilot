@@ -14,6 +14,7 @@ from pathlib import Path
 import click
 
 from sterilot import __version__
+from sterilot.cli.case_cmd import case
 from sterilot.cli.catalog_cmd import catalog
 from sterilot.cli.context import Context, default_db_path
 from sterilot.cli.cycle_cmd import cycle
@@ -102,6 +103,7 @@ def where() -> None:
     click.echo(str(default_db_path()))
 
 
+main.add_command(case)
 main.add_command(catalog)
 main.add_command(cycle)
 main.add_command(duty)
