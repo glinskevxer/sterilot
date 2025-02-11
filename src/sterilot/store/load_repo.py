@@ -165,6 +165,21 @@ class LoadStore:
         )
         return tuple(self._build(row) for row in found)
 
+    def on_days(self, start: date, end: date) -> tuple[LoadRecord, ...]:
+        """Loads whose cycle ran in ``[start, end)``.
+
+        The day a load belongs to is the day its chamber ran, not the moment
+        somebody typed the load in. A night shift load built at ten past
+        midnight belongs to the cycle that carried it.
+        """
+        found = self.db.query(
+            f"SELECT l.{_HEADER.replace(', ', ', l.')} FROM load_record l"
+            " JOIN sterilizer_cycle c ON c.lot = l.lot"
+            " WHERE c.run_date >= ? AND c.run_date < ? ORDER BY c.run_date, c.run",
+            [rows.put_date(start), rows.put_date(end)],
+        )
+        return tuple(self._build(row) for row in found)
+
     def on_equipment(self, equipment: str, day: date | None = None) -> tuple[LoadRecord, ...]:
         if day is None:
             found = self.db.query(

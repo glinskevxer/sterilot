@@ -11,7 +11,7 @@ whole point is that nobody assembles it by hand at half past six.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date
 
 from sterilot.load.record import LoadRecord, LoadStatus
 from sterilot.quality.log import duties_for_sterilizer, duties_for_washer
@@ -163,10 +163,9 @@ def build(store: Store, day: date, settings: Settings | None = None) -> DailyRep
         for duty in sorted(owed - logged, key=lambda item: item.value):
             gaps.append(DutyGap(washer.equipment, duty.label))
 
-    start = datetime.combine(day, time.min)
-    end = datetime.combine(day, time.max)
-    loads = store.loads.between(start, end)
-    exceptions = store.quality.exceptions_between(day, date.fromordinal(day.toordinal() + 1))
+    tomorrow = date.fromordinal(day.toordinal() + 1)
+    loads = store.loads.on_days(day, tomorrow)
+    exceptions = store.quality.exceptions_between(day, tomorrow)
     return DailyReport(
         day=day,
         facility=rules.facility,

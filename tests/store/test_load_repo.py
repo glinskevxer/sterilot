@@ -184,3 +184,15 @@ def test_the_weight_is_read_back_from_the_items() -> None:
     loads.save(record(assets=("ORT-0114", "ORT-0115")))
     assert loads.total_weight("LD-4412") == Mass.of_grams(16000)
     loads.db.close()
+
+
+def test_loads_are_found_by_the_day_their_cycle_ran() -> None:
+    loads, cycles = stores()
+    cycles.save(cycle(1, DAY))
+    cycles.save(cycle(1, date(2024, 12, 8)))
+    loads.save(record("LD-1", run=1, day=DAY))
+    loads.save(record("LD-2", run=1, day=date(2024, 12, 8)))
+    found = loads.on_days(DAY, date(2024, 12, 8))
+    assert [item.reference for item in found] == ["LD-1"]
+    assert len(loads.on_days(DAY, date(2024, 12, 9))) == 2
+    loads.db.close()
