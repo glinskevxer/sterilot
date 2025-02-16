@@ -25,6 +25,7 @@ from sterilot.store.issue_repo import IssueStore
 from sterilot.store.load_repo import LoadStore
 from sterilot.store.migrations import current_version, latest_version, migrate, problems
 from sterilot.store.quality_repo import QualityStore
+from sterilot.store.staff_repo import StaffStore
 from sterilot.store.tray_repo import TrayStore
 
 
@@ -41,6 +42,7 @@ class Store:
     loads: LoadStore
     issues: IssueStore
     quality: QualityStore
+    staff: StaffStore
 
     @classmethod
     def build(cls, db: Database, resolve_spec: SpecResolver = standard_spec) -> Store:
@@ -55,6 +57,7 @@ class Store:
             loads=LoadStore(db, cycles),
             issues=IssueStore(db),
             quality=QualityStore(db),
+            staff=StaffStore(db),
         )
 
     @classmethod
