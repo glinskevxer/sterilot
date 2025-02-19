@@ -24,6 +24,7 @@ from sterilot.store.equipment_repo import EquipmentStore
 from sterilot.store.issue_repo import IssueStore
 from sterilot.store.load_repo import LoadStore
 from sterilot.store.migrations import current_version, latest_version, migrate, problems
+from sterilot.store.package_repo import PackageStore
 from sterilot.store.quality_repo import QualityStore
 from sterilot.store.repair_repo import RepairStore
 from sterilot.store.staff_repo import StaffStore
@@ -43,6 +44,7 @@ class Store:
     loads: LoadStore
     issues: IssueStore
     quality: QualityStore
+    packages: PackageStore
     repairs: RepairStore
     staff: StaffStore
 
@@ -59,6 +61,7 @@ class Store:
             loads=LoadStore(db, cycles),
             issues=IssueStore(db),
             quality=QualityStore(db),
+            packages=PackageStore(db),
             repairs=RepairStore(db),
             staff=StaffStore(db),
         )
