@@ -29,6 +29,7 @@ from sterilot.store.quality_repo import QualityStore
 from sterilot.store.repair_repo import RepairStore
 from sterilot.store.staff_repo import StaffStore
 from sterilot.store.tray_repo import TrayStore
+from sterilot.store.washer_repo import WasherStore
 
 
 @dataclass
@@ -40,6 +41,7 @@ class Store:
     equipment: EquipmentStore
     duties: DutyStore
     trays: TrayStore
+    washers: WasherStore
     cycles: CycleStore
     loads: LoadStore
     issues: IssueStore
@@ -57,6 +59,7 @@ class Store:
             equipment=EquipmentStore(db),
             duties=DutyStore(db),
             trays=TrayStore(db),
+            washers=WasherStore(db),
             cycles=cycles,
             loads=LoadStore(db, cycles),
             issues=IssueStore(db),

@@ -148,6 +148,25 @@ ALTER TABLE tray_event_numbered RENAME TO tray_event;
 """
 
 
+VERSION_FIVE_SQL = """
+CREATE TABLE IF NOT EXISTS wash_program (
+  name          TEXT PRIMARY KEY,
+  washer_class  TEXT NOT NULL,
+  a0_floor      REAL
+);
+
+CREATE TABLE IF NOT EXISTS wash_program_phase (
+  name        TEXT NOT NULL REFERENCES wash_program(name),
+  phase       TEXT NOT NULL,
+  minimum_s   REAL NOT NULL,
+  low_c       REAL,
+  high_c      REAL,
+  detergent   TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (name, phase)
+);
+"""
+
+
 @dataclass(frozen=True)
 class Migration:
     """One numbered step."""
@@ -165,6 +184,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(2, "people, storage and the repair bench", VERSION_TWO_SQL),
     Migration(3, "equipment carries its own capability", VERSION_THREE_SQL),
     Migration(4, "tray events are numbered", VERSION_FOUR_SQL),
+    Migration(5, "wash programs live in the database", VERSION_FIVE_SQL),
 )
 
 
