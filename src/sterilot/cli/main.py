@@ -28,6 +28,7 @@ from sterilot.cli.report_cmd import report
 from sterilot.cli.shelf_cmd import shelf
 from sterilot.cli.staff_cmd import staff
 from sterilot.cli.tray_cmd import tray
+from sterilot.cli.wash_cmd import wash
 from sterilot.errors import SterilotError
 from sterilot.reporting.render import pairs
 
@@ -121,6 +122,7 @@ main.add_command(shelf)
 main.add_command(staff)
 main.add_command(machine)
 main.add_command(tray)
+main.add_command(wash)
 
 
 def run() -> None:  # pragma: no cover
