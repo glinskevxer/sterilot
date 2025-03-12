@@ -23,6 +23,7 @@ from sterilot.store.duty_repo import DutyStore
 from sterilot.store.equipment_repo import EquipmentStore
 from sterilot.store.issue_repo import IssueStore
 from sterilot.store.load_repo import LoadStore
+from sterilot.store.loaner_repo import LoanerStore
 from sterilot.store.migrations import current_version, latest_version, migrate, problems
 from sterilot.store.package_repo import PackageStore
 from sterilot.store.quality_repo import QualityStore
@@ -44,6 +45,7 @@ class Store:
     washers: WasherStore
     cycles: CycleStore
     loads: LoadStore
+    loaners: LoanerStore
     issues: IssueStore
     quality: QualityStore
     packages: PackageStore
@@ -62,6 +64,7 @@ class Store:
             washers=WasherStore(db),
             cycles=cycles,
             loads=LoadStore(db, cycles),
+            loaners=LoanerStore(db),
             issues=IssueStore(db),
             quality=QualityStore(db),
             packages=PackageStore(db),

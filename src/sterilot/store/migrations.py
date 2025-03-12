@@ -167,6 +167,28 @@ CREATE TABLE IF NOT EXISTS wash_program_phase (
 """
 
 
+VERSION_SIX_SQL = """
+CREATE TABLE IF NOT EXISTS loaner (
+  reference        TEXT PRIMARY KEY,
+  vendor           TEXT NOT NULL,
+  set_name         TEXT NOT NULL,
+  case_number      TEXT NOT NULL,
+  case_start       TEXT NOT NULL,
+  expected_at      TEXT NOT NULL,
+  received_at      TEXT,
+  counted_at       TEXT,
+  reprocessed_at   TEXT,
+  released_at      TEXT,
+  decontaminated_at TEXT,
+  returned_at      TEXT,
+  piece_count      INTEGER,
+  rep_present      INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS loaner_by_case ON loaner (case_number);
+"""
+
+
 @dataclass(frozen=True)
 class Migration:
     """One numbered step."""
@@ -185,6 +207,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(3, "equipment carries its own capability", VERSION_THREE_SQL),
     Migration(4, "tray events are numbered", VERSION_FOUR_SQL),
     Migration(5, "wash programs live in the database", VERSION_FIVE_SQL),
+    Migration(6, "vendor loaners", VERSION_SIX_SQL),
 )
 
 
