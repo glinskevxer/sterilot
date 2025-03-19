@@ -20,6 +20,7 @@ from sterilot.cli.context import Context, default_db_path
 from sterilot.cli.cycle_cmd import cycle
 from sterilot.cli.duty_cmd import duty
 from sterilot.cli.load_cmd import load
+from sterilot.cli.loaner_cmd import loaner
 from sterilot.cli.machine_cmd import machine
 from sterilot.cli.quality_cmd import quality
 from sterilot.cli.recall_cmd import recall
@@ -114,6 +115,7 @@ main.add_command(catalog)
 main.add_command(cycle)
 main.add_command(duty)
 main.add_command(load)
+main.add_command(loaner)
 main.add_command(quality)
 main.add_command(recall)
 main.add_command(repair)
