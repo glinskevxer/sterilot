@@ -10,7 +10,7 @@ record rather than a conversation.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from enum import Enum
 
@@ -127,32 +127,16 @@ class Sterilizer:
 
     def repaired(self) -> Sterilizer:
         """Put the chamber back in the qualification queue."""
-        return self._with(qualification_runs_owed=QUALIFICATION_RUNS_AFTER_REPAIR)
+        return replace(self, qualification_runs_owed=QUALIFICATION_RUNS_AFTER_REPAIR)
 
     def qualification_run_passed(self) -> Sterilizer:
         if not self.qualification_runs_owed:
             raise ValidationError("no qualification runs are owed", equipment=self.equipment)
-        return self._with(qualification_runs_owed=self.qualification_runs_owed - 1)
+        return replace(self, qualification_runs_owed=self.qualification_runs_owed - 1)
 
     def qualification_run_failed(self) -> Sterilizer:
         """A failed run restarts the count, it does not just repeat one."""
-        return self._with(qualification_runs_owed=QUALIFICATION_RUNS_AFTER_REPAIR)
-
-    def _with(self, **changes: object) -> Sterilizer:
-        values: dict[str, object] = {
-            "equipment": self.equipment,
-            "model": self.model,
-            "manufacturer": self.manufacturer,
-            "methods": self.methods,
-            "chamber": self.chamber,
-            "installed_on": self.installed_on,
-            "in_service": self.in_service,
-            "out_of_order": self.out_of_order,
-            "qualification_runs_owed": self.qualification_runs_owed,
-            "notes": self.notes,
-        }
-        values.update(changes)
-        return Sterilizer(**values)  # type: ignore[arg-type]
+        return replace(self, qualification_runs_owed=QUALIFICATION_RUNS_AFTER_REPAIR)
 
     def label(self) -> str:
         return f"{self.equipment} {self.model}"

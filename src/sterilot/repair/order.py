@@ -13,7 +13,7 @@ is the one rule in here that is about money rather than about instruments.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from enum import Enum
 
@@ -134,38 +134,17 @@ class RepairOrder:
                 current=self.status.value,
                 target=status.value,
             )
-        changes: dict[str, object] = {
-            "reference": self.reference,
-            "asset": self.asset,
-            "catalog": self.catalog,
-            "tray_code_out_of": self.tray_code_out_of,
-            "vendor": self.vendor,
-            "fault": self.fault,
-            "raised_at": self.raised_at,
-            "raised_by": self.raised_by,
-            "status": status,
-            "quote": self.quote,
-            "approved_by": self.approved_by,
-            "sent_at": at if status is Status.SENT else self.sent_at,
-            "closed_at": at if status.closed else self.closed_at,
-        }
-        changes.update(values)
-        return RepairOrder(**changes)  # type: ignore[arg-type]
+        return replace(
+            self,
+            status=status,
+            sent_at=at if status is Status.SENT else self.sent_at,
+            closed_at=at if status.closed else self.closed_at,
+            **values,  # type: ignore[arg-type]
+        )
 
     def approved(self, at: datetime, by: Technician, quote: Money) -> RepairOrder:
         """Approve a quote, which needs a supervisor over the threshold."""
-        candidate = RepairOrder(
-            self.reference,
-            self.asset,
-            self.catalog,
-            self.tray_code_out_of,
-            self.vendor,
-            self.fault,
-            self.raised_at,
-            self.raised_by,
-            self.status,
-            quote,
-        )
+        candidate = replace(self, quote=quote)
         if candidate.needs_supervisor() and by.role is not Role.SUPERVISOR:
             raise ConflictError(
                 "a quote over the threshold needs a supervisor",

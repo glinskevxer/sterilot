@@ -12,7 +12,7 @@ been sitting there, how many times has it been round this year.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import date, datetime
 from enum import Enum
 
@@ -105,20 +105,13 @@ class TrayInstance:
             )
         check_move(self.stage, stage)
         event = TrayEvent(at, stage, by, note)
-        return TrayInstance(
-            self.asset,
-            self.code,
-            self.ownership,
-            self.owner,
-            (*self.history, event),
-            self.retired_on,
-        )
+        return replace(self, history=(*self.history, event))
 
     def retired_on_day(self, day: date, by: str) -> TrayInstance:
         if self.retired:
             raise ConflictError("that tray is already retired", asset=self.asset)
         badge_number(by)
-        return TrayInstance(self.asset, self.code, self.ownership, self.owner, self.history, day)
+        return replace(self, retired_on=day)
 
     def stage_at(self, moment: datetime) -> Stage | None:
         """Where the tray was at ``moment``, or None before it existed."""

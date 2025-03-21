@@ -13,7 +13,7 @@ by the competency record rather than by the job title.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from enum import Enum
 
@@ -127,13 +127,7 @@ class Technician:
         return None
 
     def with_certification(self, certification: Certification) -> Technician:
-        return Technician(
-            self.badge,
-            self.name,
-            self.role,
-            self.employed,
-            (*self.certifications, certification),
-        )
+        return replace(self, certifications=(*self.certifications, certification))
 
     def label(self) -> str:
         return f"{self.badge} {self.name}"

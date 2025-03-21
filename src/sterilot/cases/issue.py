@@ -13,7 +13,7 @@ undo.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import Enum
 
@@ -91,7 +91,7 @@ class Issue:
             raise ConflictError("that tray already came back", asset=self.asset)
         if not disposition.closed:
             raise ValidationError("a return needs a real disposition", asset=self.asset)
-        return Issue(self.asset, self.case, self.issued_at, self.issued_by, at, disposition)
+        return replace(self, returned_at=at, disposition=disposition)
 
     def describe(self) -> str:
         if self.open:

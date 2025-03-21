@@ -7,6 +7,8 @@ from the option, so a hospital that runs a different window changes it once.
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import click
 
 from sterilot.assets.loaner import LoanerSet
@@ -57,15 +59,7 @@ def book(
 def receive(context: Context, reference: str) -> None:
     """Record a loaner arriving."""
     found = context.store.loaners.get(reference)
-    updated = LoanerSet(
-        reference=found.reference,
-        vendor=found.vendor,
-        set_name=found.set_name,
-        case=found.case,
-        case_start=found.case_start,
-        expected_at=found.expected_at,
-        received_at=context.now(),
-    )
+    updated = replace(found, received_at=context.now())
     context.store.loaners.save(updated)
     lead = updated.lead_time()
     hours = f"{lead.hours:.1f}" if lead is not None else "0"
@@ -82,7 +76,7 @@ def count(context: Context, reference: str, pieces: int, rep_present: bool) -> N
     found = context.store.loaners.get(reference)
     if found.received_at is None:
         raise click.ClickException(f"{found.reference} has not arrived")
-    updated = _with(
+    updated = replace(
         found, counted_at=context.now(), piece_count=pieces, rep_present_at_count=rep_present
     )
     context.store.loaners.save(updated)
@@ -95,7 +89,7 @@ def count(context: Context, reference: str, pieces: int, rep_present: bool) -> N
 def reprocessed(context: Context, reference: str) -> None:
     """Record that we have run the set through ourselves."""
     found = context.store.loaners.get(reference)
-    updated = _with(found, reprocessed_at=context.now())
+    updated = replace(found, reprocessed_at=context.now())
     context.store.loaners.save(updated)
     problems = updated.problems(context.settings.loaner_lead_hours)
     click.echo(f"{updated.reference} reprocessed")
@@ -164,24 +158,3 @@ def outstanding(context: Context) -> None:
             ],
         )
     )
-
-
-def _with(found: LoanerSet, **changes: object) -> LoanerSet:
-    values: dict[str, object] = {
-        "reference": found.reference,
-        "vendor": found.vendor,
-        "set_name": found.set_name,
-        "case": found.case,
-        "case_start": found.case_start,
-        "expected_at": found.expected_at,
-        "received_at": found.received_at,
-        "counted_at": found.counted_at,
-        "reprocessed_at": found.reprocessed_at,
-        "released_at": found.released_at,
-        "decontaminated_at": found.decontaminated_at,
-        "returned_at": found.returned_at,
-        "piece_count": found.piece_count,
-        "rep_present_at_count": found.rep_present_at_count,
-    }
-    values.update(changes)
-    return LoanerSet(**values)  # type: ignore[arg-type]

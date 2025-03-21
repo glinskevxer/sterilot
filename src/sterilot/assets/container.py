@@ -12,7 +12,7 @@ contents are made of.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from enum import Enum
 
@@ -123,33 +123,17 @@ class Container:
 
     def after_cycle(self) -> Container:
         """The same container one cycle further from its inspection."""
-        return Container(
-            self.asset,
-            self.model,
-            self.manufacturer,
-            self.filter_type,
-            self.filter_positions,
-            self.in_service,
-            self.last_inspection,
-            self.cycles_since_inspection + 1,
-            self.gasket_intact,
-            self.latches_intact,
-        )
+        return replace(self, cycles_since_inspection=self.cycles_since_inspection + 1)
 
     def inspected(
         self, day: date, gasket_intact: bool = True, latches_intact: bool = True
     ) -> Container:
-        return Container(
-            self.asset,
-            self.model,
-            self.manufacturer,
-            self.filter_type,
-            self.filter_positions,
-            self.in_service,
-            day,
-            0,
-            gasket_intact,
-            latches_intact,
+        return replace(
+            self,
+            last_inspection=day,
+            cycles_since_inspection=0,
+            gasket_intact=gasket_intact,
+            latches_intact=latches_intact,
         )
 
     def label(self) -> str:

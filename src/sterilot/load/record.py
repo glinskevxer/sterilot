@@ -13,7 +13,7 @@ sitting held.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from enum import Enum
 
@@ -94,12 +94,12 @@ class LoadRecord:
     def decided(self, decision: ReleaseDecision) -> LoadRecord:
         if self.recalled_at is not None:
             raise ConflictError("that load was recalled", load=self.reference)
-        return LoadRecord(self.load, self.cycle, decision, self.recalled_at, self.recall_reason)
+        return replace(self, decision=decision)
 
     def recalled(self, at: datetime, reason: str) -> LoadRecord:
         if self.recalled_at is not None:
             raise ConflictError("that load is already recalled", load=self.reference)
-        return LoadRecord(self.load, self.cycle, self.decision, at, reason)
+        return replace(self, recalled_at=at, recall_reason=reason)
 
     def summary(self) -> str:
         return f"{self.reference} {self.lot.format()} {self.status.label}"

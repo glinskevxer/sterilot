@@ -13,7 +13,7 @@ patient or could have, and those never close on the same day they open.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from enum import Enum
 
@@ -138,18 +138,11 @@ class Nonconformance:
     def closed(self, at: datetime, by: str, investigation: str = "") -> Nonconformance:
         if not self.open:
             raise ConflictError("that exception is already closed", reference=self.reference)
-        return Nonconformance(
-            self.reference,
-            self.category,
-            self.severity,
-            self.raised_at,
-            self.raised_by,
-            self.description,
-            self.subject,
-            self.immediate_action,
-            investigation or self.investigation,
-            at,
-            by,
+        return replace(
+            self,
+            investigation=investigation or self.investigation,
+            closed_at=at,
+            closed_by=by,
         )
 
     def summary(self) -> str:

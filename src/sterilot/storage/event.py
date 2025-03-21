@@ -14,7 +14,7 @@ belief, so both work here.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from enum import Enum
 
@@ -124,9 +124,7 @@ class Package:
         return cls(asset, lot, packaging, sterilized_at, tuple(events))
 
     def with_event(self, record: EventRecord) -> Package:
-        return Package(
-            self.asset, self.lot, self.packaging, self.sterilized_at, (*self.events, record)
-        )
+        return replace(self, events=(*self.events, record))
 
     def compromising_events(self) -> tuple[EventRecord, ...]:
         return tuple(record for record in self.events if record.event.compromises)

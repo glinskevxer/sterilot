@@ -10,7 +10,7 @@ back soiled and be reprocessed for no reason.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 
 from sterilot.cases.preference_card import PreferenceCard
@@ -151,12 +151,4 @@ class CaseCart:
     def delivered_on(self, at: datetime) -> CaseCart:
         if self.delivered:
             raise ValidationError("that cart was already delivered", reference=self.reference)
-        return CaseCart(
-            self.reference,
-            self.case,
-            self.card_reference,
-            self.lines,
-            self.built_by,
-            self.built_at,
-            at,
-        )
+        return replace(self, delivered_at=at)

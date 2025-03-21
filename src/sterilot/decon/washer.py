@@ -13,7 +13,7 @@ qualification date is not a machine whose cycles mean anything.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date
 from enum import Enum
 
@@ -125,16 +125,7 @@ class Washer:
         return None
 
     def qualified(self, day: date) -> Washer:
-        return Washer(
-            self.equipment,
-            self.model,
-            self.manufacturer,
-            self.washer_class,
-            self.chambers,
-            self.in_service,
-            day,
-            self.out_of_order,
-        )
+        return replace(self, last_qualification=day)
 
     def label(self) -> str:
         return f"{self.equipment} {self.model}"
