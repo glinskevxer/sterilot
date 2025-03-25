@@ -17,6 +17,7 @@ from sterilot import __version__
 from sterilot.cli.case_cmd import case
 from sterilot.cli.catalog_cmd import catalog
 from sterilot.cli.context import Context, default_db_path
+from sterilot.cli.count_cmd import count
 from sterilot.cli.cycle_cmd import cycle
 from sterilot.cli.duty_cmd import duty
 from sterilot.cli.load_cmd import load
@@ -113,6 +114,7 @@ def where() -> None:
 
 main.add_command(case)
 main.add_command(catalog)
+main.add_command(count)
 main.add_command(cycle)
 main.add_command(duty)
 main.add_command(load)
