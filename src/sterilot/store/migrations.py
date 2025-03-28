@@ -189,6 +189,23 @@ CREATE INDEX IF NOT EXISTS loaner_by_case ON loaner (case_number);
 """
 
 
+VERSION_SEVEN_SQL = """
+CREATE TABLE IF NOT EXISTS verification (
+  equipment_id  TEXT    NOT NULL,
+  at            TEXT    NOT NULL,
+  kind          TEXT    NOT NULL,
+  value         REAL,
+  visual_pass   INTEGER,
+  by_badge      TEXT    NOT NULL,
+  lot           TEXT    NOT NULL DEFAULT '',
+  subject       TEXT    NOT NULL DEFAULT '',
+  PRIMARY KEY (equipment_id, at, kind, subject)
+);
+
+CREATE INDEX IF NOT EXISTS verification_by_day ON verification (equipment_id, at);
+"""
+
+
 @dataclass(frozen=True)
 class Migration:
     """One numbered step."""
@@ -208,6 +225,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(4, "tray events are numbered", VERSION_FOUR_SQL),
     Migration(5, "wash programs live in the database", VERSION_FIVE_SQL),
     Migration(6, "vendor loaners", VERSION_SIX_SQL),
+    Migration(7, "cleaning verification results", VERSION_SEVEN_SQL),
 )
 
 

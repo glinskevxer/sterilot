@@ -31,6 +31,7 @@ from sterilot.cli.sheet_cmd import sheet
 from sterilot.cli.shelf_cmd import shelf
 from sterilot.cli.staff_cmd import staff
 from sterilot.cli.tray_cmd import tray
+from sterilot.cli.verify_cmd import verify
 from sterilot.cli.wash_cmd import wash
 from sterilot.errors import SterilotError
 from sterilot.reporting.render import pairs
@@ -128,6 +129,7 @@ main.add_command(sheet)
 main.add_command(staff)
 main.add_command(machine)
 main.add_command(tray)
+main.add_command(verify)
 main.add_command(wash)
 
 
