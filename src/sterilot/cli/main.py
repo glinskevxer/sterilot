@@ -14,6 +14,7 @@ from pathlib import Path
 import click
 
 from sterilot import __version__
+from sterilot.cli.admin_cmd import admin
 from sterilot.cli.case_cmd import case
 from sterilot.cli.catalog_cmd import catalog
 from sterilot.cli.context import Context, default_db_path
@@ -64,13 +65,22 @@ class Cli(click.Group):
     help="a settings file to read instead of the defaults",
 )
 @click.option("--badge", default=None, help="the badge signing anything this command writes")
+@click.option(
+    "--no-migrate",
+    is_flag=True,
+    help="open the file without bringing its schema up to this build",
+)
 @click.version_option(__version__, prog_name="sterilot")
 @click.pass_context
 def main(
-    ctx: click.Context, db_path: Path | None, settings_path: Path | None, badge: str | None
+    ctx: click.Context,
+    db_path: Path | None,
+    settings_path: Path | None,
+    badge: str | None,
+    no_migrate: bool,
 ) -> None:
     """Sterile processing records."""
-    ctx.obj = Context.build(db_path, settings_path, badge)
+    ctx.obj = Context.build(db_path, settings_path, badge, apply_migrations=not no_migrate)
     ctx.call_on_close(ctx.obj.close)
 
 
@@ -113,6 +123,7 @@ def where() -> None:
     click.echo(str(default_db_path()))
 
 
+main.add_command(admin)
 main.add_command(case)
 main.add_command(catalog)
 main.add_command(count)

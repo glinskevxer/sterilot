@@ -17,11 +17,13 @@ from sterilot.cli.main import main
 BADGE = "T-4471"
 
 
-def invoke(db: str, *args: str, badge: str | None = BADGE) -> Result:
+def invoke(db: str, *args: str, badge: str | None = BADGE, migrate: bool = True) -> Result:
     """Run a command against ``db``, signed unless ``badge`` is None."""
     prefix = ["--db", db]
     if badge is not None:
         prefix.extend(["--badge", badge])
+    if not migrate:
+        prefix.append("--no-migrate")
     return CliRunner().invoke(main, [*prefix, *args])
 
 
