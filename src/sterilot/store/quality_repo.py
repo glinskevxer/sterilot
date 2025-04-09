@@ -97,7 +97,7 @@ class QualityStore:
         found = self.db.query(
             f"SELECT {_EXCEPTION} FROM nonconformance WHERE raised_at >= ? AND raised_at < ?"
             " ORDER BY raised_at",
-            [f"{start.isoformat()}T00:00:00", f"{end.isoformat()}T00:00:00"],
+            list(rows.day_bounds(start, end)),
         )
         return tuple(self._exception(row) for row in found)
 

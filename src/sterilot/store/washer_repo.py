@@ -165,11 +165,7 @@ class WasherStore:
         found = self.db.query(
             f"SELECT {_CYCLE} FROM washer_cycle WHERE equipment_id = ?"
             " AND started_at >= ? AND started_at < ? ORDER BY started_at, number",
-            [
-                equipment_id(equipment),
-                f"{day.isoformat()}T00:00:00",
-                f"{day.isoformat()}T23:59:59",
-            ],
+            [equipment_id(equipment), *rows.day_window(day)],
         )
         return tuple(self._cycle(row) for row in found)
 

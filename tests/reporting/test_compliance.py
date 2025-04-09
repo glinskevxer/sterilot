@@ -13,6 +13,7 @@ from sterilot.methods import Method
 from sterilot.quality.log import Duty, LogEntry
 from sterilot.quality.nonconformance import Category, Nonconformance, Severity
 from sterilot.reporting import compliance
+from sterilot.staff.tech import Role, Technician
 from sterilot.sterilizer.cycle import SterilizerCycle
 from sterilot.sterilizer.equipment import Sterilizer
 from sterilot.sterilizer.parameters import CycleMeasurements, CycleSpec
@@ -152,8 +153,6 @@ def test_a_bad_storage_location_is_reported(store: Store) -> None:
 
 
 def test_a_lapsed_releaser_is_reported(store: Store) -> None:
-    from sterilot.staff.tech import Role, Technician
-
     store.staff.save(Technician("T-4471", "R Ferreira", Role.TECHNICIAN))
     report = compliance.build(store, START, END)
     assert not report.clean
@@ -161,8 +160,6 @@ def test_a_lapsed_releaser_is_reported(store: Store) -> None:
 
 
 def test_a_trainee_is_not_counted_as_a_lapsed_releaser(store: Store) -> None:
-    from sterilot.staff.tech import Role, Technician
-
     store.staff.save(Technician("T-9100", "A Novak", Role.TRAINEE))
     report = compliance.build(store, START, END)
     assert report.lapsed_competencies == ()

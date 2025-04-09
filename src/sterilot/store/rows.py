@@ -14,7 +14,7 @@ crash on the report that would have shown it.
 from __future__ import annotations
 
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from enum import Enum
 from typing import Any, TypeVar
 
@@ -25,6 +25,21 @@ from sterilot.units.mass import Mass
 from sterilot.units.temperature import Temperature
 
 EnumT = TypeVar("EnumT", bound=Enum)
+
+
+def day_window(day: date) -> tuple[str, str]:
+    """The half open ``[start, end)`` bounds of one day, as stored text.
+
+    Every repository was writing its own pair of these, and the ones ending at
+    ``T23:59:59`` quietly dropped anything recorded in the last second of the
+    day. One function, one boundary, half open like everything else here.
+    """
+    return f"{day.isoformat()}T00:00:00", f"{(day + timedelta(days=1)).isoformat()}T00:00:00"
+
+
+def day_bounds(start: date, end: date) -> tuple[str, str]:
+    """The same, for a window already given as two days."""
+    return f"{start.isoformat()}T00:00:00", f"{end.isoformat()}T00:00:00"
 
 
 def put_date(value: date | None) -> str | None:

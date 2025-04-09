@@ -86,7 +86,7 @@ class LoanerStore:
         found = self.db.query(
             f"SELECT {_COLUMNS} FROM loaner WHERE case_start >= ? AND case_start < ?"
             " ORDER BY case_start",
-            [f"{day.isoformat()}T00:00:00", f"{day.isoformat()}T23:59:59"],
+            list(rows.day_window(day)),
         )
         return tuple(self._build(row) for row in found)
 

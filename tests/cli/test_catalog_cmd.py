@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 import pytest
 from click.testing import CliRunner, Result
 
+from sterilot.catalog.revision import RevisionHistory
+from sterilot.catalog.tray import CountLine, CountSheet
 from sterilot.cli.main import main
+from sterilot.store.store import Store
 
 
 @pytest.fixture
@@ -116,12 +120,6 @@ def test_sets_are_empty_until_one_is_defined(db: str) -> None:
 
 def test_a_sheet_can_be_read_back_for_a_day(db: str) -> None:
     add_forceps(db)
-    from datetime import date
-
-    from sterilot.catalog.revision import RevisionHistory
-    from sterilot.catalog.tray import CountLine, CountSheet
-    from sterilot.store.store import Store
-
     with Store.open(db) as store:
         item = store.catalog.instrument("SU-1234")
         sheet = CountSheet.of("ORT-MAJOR", "ortho major", [CountLine(item, quantity=6)])

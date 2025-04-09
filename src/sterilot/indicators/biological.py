@@ -184,12 +184,6 @@ class BiologicalResult:
         return self.describe()
 
 
-def _delta(duration: Duration) -> datetime.timedelta:  # type: ignore[name-defined]
-    from datetime import timedelta
-
-    return timedelta(seconds=duration.seconds)
-
-
 def verdict(
     test: BiologicalResult,
     control: BiologicalResult | None,

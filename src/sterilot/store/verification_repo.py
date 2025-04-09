@@ -60,11 +60,7 @@ class VerificationStore:
         found = self.db.query(
             f"SELECT {_COLUMNS} FROM verification WHERE equipment_id = ?"
             " AND at >= ? AND at < ? ORDER BY at",
-            [
-                equipment_id(equipment),
-                f"{day.isoformat()}T00:00:00",
-                f"{day.isoformat()}T23:59:59",
-            ],
+            [equipment_id(equipment), *rows.day_window(day)],
         )
         return tuple(self._build(row) for row in found)
 

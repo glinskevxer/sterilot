@@ -138,3 +138,17 @@ def test_programs_are_listed_by_name(washers: WasherStore) -> None:
     washers.save_program(program())
     washers.standard_program()
     assert sorted(washers.programs()) == ["INSTRUMENT-1", "INSTRUMENT-2"]
+
+
+def test_a_cycle_in_the_last_second_of_the_day_is_still_found(washers: WasherStore) -> None:
+    washers.save_program(program())
+    late = WasherCycle(
+        equipment="WD-2",
+        program=washers.program("INSTRUMENT-2"),
+        number=399,
+        started_at=datetime(2025, 2, 26, 23, 59, 59),
+        operator="T-4471",
+        phases=(PhaseRecord(Phase.WASH, Duration.of_minutes(6), Temperature(60.0)),),
+    )
+    washers.save_cycle(late)
+    assert [item.number for item in washers.on_day("WD-2", date(2025, 2, 26))] == [399]

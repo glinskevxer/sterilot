@@ -5,6 +5,7 @@ from datetime import date, datetime
 
 import pytest
 
+from sterilot.cases.issue import Issue
 from sterilot.ids import LotControlNumber
 from sterilot.load.build import Load, LoadItem
 from sterilot.load.record import LoadRecord
@@ -160,7 +161,5 @@ def test_the_rendered_report_carries_every_section(store: Store) -> None:
 
 
 def test_trays_out_are_counted(store: Store) -> None:
-    from sterilot.cases.issue import Issue
-
     store.issues.save(Issue("ORT-0114", "OR3-20250212-01", datetime(2025, 2, 12, 7, 0), "T-4471"))
     assert daily.build(store, DAY).trays_out == 1

@@ -141,3 +141,21 @@ def test_a_missing_required_text_column_is_refused() -> None:
 def test_an_integer_column_holding_text_is_refused() -> None:
     with pytest.raises(IntegrityError):
         rows.get_int(row(count="four"), "count")
+
+
+def test_a_day_window_is_half_open() -> None:
+    start, end = rows.day_window(date(2025, 4, 10))
+    assert start == "2025-04-10T00:00:00"
+    assert end == "2025-04-11T00:00:00"
+
+
+def test_a_day_window_covers_the_last_second_of_the_day() -> None:
+    start, end = rows.day_window(date(2025, 4, 10))
+    assert start <= "2025-04-10T23:59:59" < end
+
+
+def test_a_window_over_two_days_uses_the_same_boundary() -> None:
+    start, end = rows.day_bounds(date(2025, 4, 1), date(2025, 4, 8))
+    assert start == "2025-04-01T00:00:00"
+    assert end == "2025-04-08T00:00:00"
+    assert start <= "2025-04-07T23:59:59" < end
