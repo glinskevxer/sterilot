@@ -206,6 +206,43 @@ CREATE INDEX IF NOT EXISTS verification_by_day ON verification (equipment_id, at
 """
 
 
+VERSION_EIGHT_SQL = """
+CREATE TABLE IF NOT EXISTS scheduled_case (
+  case_number  TEXT PRIMARY KEY,
+  room         TEXT NOT NULL,
+  surgeon      TEXT NOT NULL,
+  procedure    TEXT NOT NULL,
+  starts_at    TEXT NOT NULL,
+  minutes      INTEGER NOT NULL,
+  card_ref     TEXT NOT NULL DEFAULT ''
+);
+
+CREATE INDEX IF NOT EXISTS case_by_start ON scheduled_case (starts_at);
+
+CREATE TABLE IF NOT EXISTS preference_card (
+  reference   TEXT NOT NULL,
+  revision    INTEGER NOT NULL,
+  surgeon     TEXT NOT NULL,
+  procedure   TEXT NOT NULL,
+  starts_on   TEXT NOT NULL,
+  ends_on     TEXT,
+  loaner_sets TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (reference, revision)
+);
+
+CREATE TABLE IF NOT EXISTS preference_card_line (
+  reference  TEXT NOT NULL,
+  revision   INTEGER NOT NULL,
+  code       TEXT NOT NULL,
+  quantity   INTEGER NOT NULL,
+  essential  INTEGER NOT NULL DEFAULT 1,
+  note       TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (reference, revision, code),
+  FOREIGN KEY (reference, revision) REFERENCES preference_card(reference, revision)
+);
+"""
+
+
 @dataclass(frozen=True)
 class Migration:
     """One numbered step."""
@@ -226,6 +263,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(5, "wash programs live in the database", VERSION_FIVE_SQL),
     Migration(6, "vendor loaners", VERSION_SIX_SQL),
     Migration(7, "cleaning verification results", VERSION_SEVEN_SQL),
+    Migration(8, "the theatre list and preference cards", VERSION_EIGHT_SQL),
 )
 
 

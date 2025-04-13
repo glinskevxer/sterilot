@@ -30,6 +30,8 @@ class Database:
 
     connection: sqlite3.Connection
     path: str
+    depth: int = 0
+    """How many transactions are open. SQLite has no nested ones."""
 
     @classmethod
     def open(cls, path: Path | str) -> Database:
@@ -97,13 +99,29 @@ class Database:
 
     @contextmanager
     def transaction(self) -> Iterator[Database]:
-        """Everything inside lands together or not at all."""
+        """Everything inside lands together or not at all.
+
+        Reentrant, because one repository write legitimately calls another and
+        neither should have to know whether it is the outer one. Only the
+        outermost block starts and finishes the transaction, so a failure
+        anywhere inside rolls the whole thing back.
+        """
+        if self.depth:
+            self.depth += 1
+            try:
+                yield self
+            finally:
+                self.depth -= 1
+            return
         self.connection.execute("BEGIN")
+        self.depth = 1
         try:
             yield self
         except BaseException:
+            self.depth = 0
             self.connection.execute("ROLLBACK")
             raise
+        self.depth = 0
         self.connection.execute("COMMIT")
 
     def tables(self) -> tuple[str, ...]:

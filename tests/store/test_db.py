@@ -121,3 +121,35 @@ def test_a_dangling_reference_is_found_when_the_keys_are_off() -> None:
         problems = db.integrity_problems()
         assert len(problems) == 1
         assert "breaks a reference to parent" in problems[0]
+
+
+def test_a_nested_transaction_joins_the_outer_one() -> None:
+    with prepared() as db:
+        with db.transaction():
+            db.execute("INSERT INTO parent (id) VALUES (?)", ["P1"])
+            with db.transaction():
+                db.execute("INSERT INTO child (id, parent_id) VALUES (?, ?)", ["C1", "P1"])
+            assert db.depth == 1
+        assert db.depth == 0
+        assert db.scalar("SELECT count(*) FROM child") == 1
+
+
+def test_a_failure_inside_a_nested_block_rolls_the_whole_thing_back() -> None:
+    with prepared() as db:
+        with pytest.raises(IntegrityError):
+            with db.transaction():
+                db.execute("INSERT INTO parent (id) VALUES (?)", ["P1"])
+                with db.transaction():
+                    db.execute("INSERT INTO child (id, parent_id) VALUES (?, ?)", ["C1", "missing"])
+        assert db.depth == 0
+        assert db.scalar("SELECT count(*) FROM parent") == 0
+
+
+def test_the_depth_returns_to_zero_after_a_clean_run() -> None:
+    with prepared() as db:
+        with db.transaction():
+            assert db.depth == 1
+        assert db.depth == 0
+        with db.transaction():
+            db.execute("INSERT INTO parent (id) VALUES (?)", ["P2"])
+        assert db.scalar("SELECT count(*) FROM parent") == 1

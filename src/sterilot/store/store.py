@@ -28,6 +28,7 @@ from sterilot.store.migrations import current_version, latest_version, migrate, 
 from sterilot.store.package_repo import PackageStore
 from sterilot.store.quality_repo import QualityStore
 from sterilot.store.repair_repo import RepairStore
+from sterilot.store.schedule_repo import ScheduleStore
 from sterilot.store.staff_repo import StaffStore
 from sterilot.store.tray_repo import TrayStore
 from sterilot.store.verification_repo import VerificationStore
@@ -52,6 +53,7 @@ class Store:
     quality: QualityStore
     packages: PackageStore
     repairs: RepairStore
+    schedule: ScheduleStore
     staff: StaffStore
 
     @classmethod
@@ -72,6 +74,7 @@ class Store:
             quality=QualityStore(db),
             packages=PackageStore(db),
             repairs=RepairStore(db),
+            schedule=ScheduleStore(db),
             staff=StaffStore(db),
         )
 
