@@ -28,6 +28,7 @@ from sterilot.cli.quality_cmd import quality
 from sterilot.cli.recall_cmd import recall
 from sterilot.cli.repair_cmd import repair
 from sterilot.cli.report_cmd import report
+from sterilot.cli.schedule_cmd import schedule
 from sterilot.cli.sheet_cmd import sheet
 from sterilot.cli.shelf_cmd import shelf
 from sterilot.cli.staff_cmd import staff
@@ -135,6 +136,7 @@ main.add_command(quality)
 main.add_command(recall)
 main.add_command(repair)
 main.add_command(report)
+main.add_command(schedule)
 main.add_command(shelf)
 main.add_command(sheet)
 main.add_command(staff)
