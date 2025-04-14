@@ -106,9 +106,9 @@ def test_a_version_from_a_newer_build_is_named() -> None:
         migrate(db, NOW)
         db.execute(
             "INSERT INTO schema_version (version, applied_at, name) VALUES (?, ?, ?)",
-            [9, NOW.isoformat(), "from the future"],
+            [99, NOW.isoformat(), "from the future"],
         )
-        assert problems(db) == ("version 9 was applied by a newer build",)
+        assert problems(db) == ("version 99 was applied by a newer build",)
         with pytest.raises(IntegrityError):
             ensure_current(db)
 

@@ -243,6 +243,29 @@ CREATE TABLE IF NOT EXISTS preference_card_line (
 """
 
 
+VERSION_NINE_SQL = """
+CREATE TABLE IF NOT EXISTS case_cart (
+  reference     TEXT PRIMARY KEY,
+  case_number   TEXT NOT NULL,
+  card_ref      TEXT NOT NULL,
+  built_by      TEXT NOT NULL,
+  built_at      TEXT NOT NULL,
+  delivered_at  TEXT
+);
+
+CREATE INDEX IF NOT EXISTS cart_by_case ON case_cart (case_number);
+
+CREATE TABLE IF NOT EXISTS case_cart_line (
+  reference  TEXT NOT NULL REFERENCES case_cart(reference),
+  asset      TEXT NOT NULL,
+  code       TEXT NOT NULL,
+  location   TEXT NOT NULL DEFAULT '',
+  picked_by  TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (reference, asset)
+);
+"""
+
+
 @dataclass(frozen=True)
 class Migration:
     """One numbered step."""
@@ -264,6 +287,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(6, "vendor loaners", VERSION_SIX_SQL),
     Migration(7, "cleaning verification results", VERSION_SEVEN_SQL),
     Migration(8, "the theatre list and preference cards", VERSION_EIGHT_SQL),
+    Migration(9, "case carts", VERSION_NINE_SQL),
 )
 
 

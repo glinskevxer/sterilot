@@ -16,6 +16,7 @@ from datetime import datetime
 from pathlib import Path
 
 from sterilot.errors import IntegrityError
+from sterilot.store.cart_repo import CartStore
 from sterilot.store.catalog_repo import CatalogStore
 from sterilot.store.cycle_repo import CycleStore, SpecResolver, standard_spec
 from sterilot.store.db import Database
@@ -40,6 +41,7 @@ class Store:
     """The whole record, opened once."""
 
     db: Database
+    carts: CartStore
     catalog: CatalogStore
     equipment: EquipmentStore
     duties: DutyStore
@@ -61,6 +63,7 @@ class Store:
         cycles = CycleStore(db, resolve_spec)
         return cls(
             db=db,
+            carts=CartStore(db),
             catalog=CatalogStore(db),
             equipment=EquipmentStore(db),
             duties=DutyStore(db),
