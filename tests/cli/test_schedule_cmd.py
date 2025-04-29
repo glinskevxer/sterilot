@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from tests.cli.conftest import invoke
@@ -194,3 +196,37 @@ def test_a_case_without_a_card_prints_nothing_more(theatre: str) -> None:
 
 def test_an_unknown_case_exits_not_found(theatre: str) -> None:
     assert invoke(theatre, "schedule", "case", "OR9-99").exit_code == 3
+
+
+LIST_FILE = """case,room,surgeon,procedure,start,minutes,card
+OR5-01,OR5,Bell,cystoscopy,2025-04-17 09:00,45,
+OR5-02,OR5,Bell,ureteroscopy,2025-04-17 10:00,60,PC-118
+"""
+
+
+def test_a_theatre_export_is_imported(theatre: str, tmp_path: Path) -> None:
+    path = tmp_path / "list.csv"
+    path.write_text(LIST_FILE, encoding="utf-8")
+    result = invoke(theatre, "schedule", "import", str(path))
+    assert result.exit_code == 0
+    assert "2 cases read" in result.output
+    assert "rooms: OR5" in result.output
+    listed = invoke(theatre, "schedule", "day", "--on", "2025-04-17")
+    assert "OR5-01" in listed.output
+
+
+def test_a_dry_run_saves_nothing(theatre: str, tmp_path: Path) -> None:
+    path = tmp_path / "list.csv"
+    path.write_text(LIST_FILE, encoding="utf-8")
+    result = invoke(theatre, "schedule", "import", str(path), "--dry-run")
+    assert "dry run, nothing was saved" in result.output
+    listed = invoke(theatre, "schedule", "day", "--on", "2025-04-17")
+    assert "OR5-01" not in listed.output
+
+
+def test_a_bad_row_is_reported_and_exits_two(theatre: str, tmp_path: Path) -> None:
+    path = tmp_path / "list.csv"
+    path.write_text(LIST_FILE + "OR6-01,OR6\n", encoding="utf-8")
+    result = invoke(theatre, "schedule", "import", str(path))
+    assert result.exit_code == 2
+    assert "wrong number of fields" in result.output

@@ -7,12 +7,15 @@ for because nobody attached a card.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import click
 
 from sterilot.cases.preference_card import CardLine, PreferenceCard
 from sterilot.cases.schedule import ScheduledCase
 from sterilot.cli.context import Context
 from sterilot.clock import parse_day, parse_moment
+from sterilot.ingest.theatre_list import load_theatre_list
 from sterilot.interval import DateRange
 from sterilot.reporting.render import Column, bullets, pairs, table
 
@@ -88,6 +91,26 @@ def add_card(
     )
     context.store.schedule.save_card(card)
     click.echo(f"{card.label()} calls for {card.total_sets} sets")
+
+
+@schedule.command("import")
+@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--dry-run", is_flag=True, help="read the file without saving anything")
+@click.pass_obj
+def import_list(context: Context, path: Path, dry_run: bool) -> None:
+    """Read a theatre export and put its cases on the list."""
+    result = load_theatre_list(path.read_text(encoding="utf-8"))
+    if not dry_run:
+        for case in result.cases:
+            context.store.schedule.save_case(case)
+    click.echo(result.summary())
+    if result.rooms():
+        click.echo("rooms: " + ", ".join(result.rooms()))
+    if dry_run:
+        click.echo("dry run, nothing was saved")
+    if result.problems:
+        click.echo(bullets(item.describe() for item in result.problems))
+        raise SystemExit(2)
 
 
 @schedule.command("day")
