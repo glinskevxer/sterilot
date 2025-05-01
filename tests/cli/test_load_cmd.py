@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from click.testing import Result
 
-from tests.cli.conftest import add_sterilizer, invoke, record_cycle
+from tests.cli.conftest import add_sterilizer, assemble, invoke, record_cycle
 
 LOT = "AC-1-20250114-01"
 
@@ -88,7 +88,7 @@ def test_a_wet_load_is_rejected(ready: str) -> None:
 
 def test_a_missing_air_removal_test_rejects_the_load(db: str) -> None:
     add_sterilizer(db)
-    invoke(db, "tray", "register", "ORT-0114", "ORT-MAJOR")
+    assemble(db, "ORT-0114")
     record_cycle(db, "2025-01-14 08:00")
     build(db)
     result = release(db)
@@ -187,3 +187,33 @@ def test_loads_of_a_tray_are_listed(ready: str) -> None:
     result = invoke(ready, "load", "of-tray", "ort 0114")
     assert "LD-1" in result.output
     assert "pending" in result.output
+
+
+def test_a_load_is_built_from_assembled_trays(db: str) -> None:
+    add_sterilizer(db)
+    invoke(db, "tray", "register", "ORT-0114", "ORT-MAJOR")
+    record_cycle(db, "2025-01-14 08:00")
+    result = build(db)
+    assert result.exit_code != 0
+    assert "is soiled, a load is built from assembled trays" in result.output
+
+
+def test_building_a_load_puts_the_trays_in_the_chamber(ready: str) -> None:
+    build(ready)
+    shown = invoke(ready, "tray", "show", "ORT-0114", "--no-history")
+    assert "sterilizing" in shown.output
+
+
+def test_releasing_a_load_walks_its_trays_onto_the_shelf(ready: str) -> None:
+    build(ready)
+    release(ready)
+    shown = invoke(ready, "tray", "show", "ORT-0114")
+    assert "cooling" in shown.output
+    assert "stage      sterile" in shown.output
+
+
+def test_a_rejected_load_leaves_its_trays_in_the_chamber(ready: str) -> None:
+    build(ready)
+    release(ready, "--wet")
+    shown = invoke(ready, "tray", "show", "ORT-0114", "--no-history")
+    assert "sterilizing" in shown.output

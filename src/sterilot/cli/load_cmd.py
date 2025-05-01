@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import click
 
+from sterilot.assets.lifecycle import Stage, allowed_from
 from sterilot.cli.context import Context
 from sterilot.clock import parse_day
 from sterilot.indicators.chemical import (
@@ -51,6 +52,10 @@ def build(
     items = []
     for asset in trays:
         tray = context.store.trays.get(asset)
+        if tray.stage is not Stage.ASSEMBLED:
+            raise click.ClickException(
+                f"{tray.asset} is {tray.stage.label}, a load is built from assembled trays"
+            )
         items.append(
             LoadItem(
                 asset=tray.asset,
@@ -63,6 +68,11 @@ def build(
     made = Load.of(reference, cycle.method, items, context.signed_by(), context.now())
     record = LoadRecord(made, cycle)
     context.store.loads.save(record)
+    for asset in made.assets():
+        tray = context.store.trays.get(asset)
+        context.store.trays.save(
+            tray.moved_to(Stage.STERILIZING, context.now(), context.signed_by(), made.reference)
+        )
     problems = made.problems(context.store.equipment.sterilizer(cycle.equipment).capacity_units)
     click.echo(f"built {made.label()} on {cycle.lot.format()}")
     if problems:
@@ -127,6 +137,8 @@ def release(
     )
     decision = decide(request, context.settings)
     context.store.loads.save(record.decided(decision))
+    if decision.released:
+        _to_the_shelf(context, record)
     click.echo(decision.explain())
     if not decision.released:
         raise SystemExit(5)
@@ -196,6 +208,18 @@ def of_tray(context: Context, asset: str) -> None:
             ],
         )
     )
+
+
+def _to_the_shelf(context: Context, record: LoadRecord) -> None:
+    """Walk every tray in a released load out of the chamber and onto the shelf."""
+    for asset in record.load.assets():
+        tray = context.store.trays.get(asset)
+        for stage in (Stage.COOLING, Stage.STERILE):
+            if tray.stage is stage:
+                continue
+            if stage in allowed_from(tray.stage):
+                tray = tray.moved_to(stage, context.now(), context.signed_by(), record.reference)
+        context.store.trays.save(tray)
 
 
 def _split(entry: str) -> tuple[str, Outcome]:

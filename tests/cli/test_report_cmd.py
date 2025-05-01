@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import pytest
 
-from tests.cli.conftest import add_sterilizer, invoke, record_cycle
+from tests.cli.conftest import add_sterilizer, assemble, invoke, record_cycle
 
 
 @pytest.fixture
 def busy(db: str) -> str:
     add_sterilizer(db)
-    invoke(db, "tray", "register", "ORT-0114", "ORT-MAJOR")
+    assemble(db, "ORT-0114")
     invoke(db, "duty", "log", "AC-1", "air removal", "--on", "2025-02-14")
     invoke(db, "duty", "log", "AC-1", "biological", "--on", "2025-02-14")
     record_cycle(db, "2025-02-14 08:00", run=1)
@@ -73,7 +73,7 @@ def test_quality_says_when_there_is_nothing_to_measure(db: str) -> None:
 
 
 def test_a_held_load_is_listed_in_the_quality_report(busy: str) -> None:
-    invoke(busy, "tray", "register", "IMP-0001", "IMP-KNEE")
+    assemble(busy, "IMP-0001", "IMP-KNEE")
     record_cycle(busy, "2025-02-14 10:00", run=2)
     invoke(
         busy,

@@ -85,6 +85,16 @@ def record_cycle(db: str, started: str, run: int | None = None, equipment: str =
     return invoke(db, *args)
 
 
+ASSEMBLY_ROUTE = ("decontamination", "clean", "assembled")
+
+
+def assemble(db: str, asset: str, code: str = "ORT-MAJOR") -> None:
+    """Register a tray and walk it to the assembly bench, ready for a load."""
+    invoke(db, "tray", "register", asset, code)
+    for stage in ASSEMBLY_ROUTE:
+        invoke(db, "tray", "move", asset, stage)
+
+
 @pytest.fixture
 def db(tmp_path: Path) -> str:
     """An empty database with no machines in it."""
@@ -95,8 +105,8 @@ def db(tmp_path: Path) -> str:
 def ready(db: str) -> str:
     """A chamber, two trays, a cycle and a passing air removal test."""
     add_sterilizer(db)
-    invoke(db, "tray", "register", "ORT-0114", "ORT-MAJOR")
-    invoke(db, "tray", "register", "IMP-0001", "IMP-KNEE")
+    assemble(db, "ORT-0114")
+    assemble(db, "IMP-0001", "IMP-KNEE")
     record_cycle(db, "2025-01-14 08:00")
     invoke(db, "duty", "log", "AC-1", "air removal", "--on", "2025-01-14")
     return db
