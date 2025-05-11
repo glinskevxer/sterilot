@@ -121,6 +121,12 @@ class Container:
     def methods(self, day: date) -> tuple[Method, ...]:
         return tuple(method for method in Method if self.usable_for(method, day))
 
+    def refusal_on_any_method(self, day: date) -> str | None:
+        """Why this container cannot run anything at all today, or None."""
+        if self.methods(day):
+            return None
+        return self.refusal_for(Method.STEAM_PREVAC, day) or "the container cannot run"
+
     def after_cycle(self) -> Container:
         """The same container one cycle further from its inspection."""
         return replace(self, cycles_since_inspection=self.cycles_since_inspection + 1)

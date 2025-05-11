@@ -18,6 +18,7 @@ from pathlib import Path
 from sterilot.errors import IntegrityError
 from sterilot.store.cart_repo import CartStore
 from sterilot.store.catalog_repo import CatalogStore
+from sterilot.store.container_repo import ContainerStore
 from sterilot.store.cycle_repo import CycleStore, SpecResolver, standard_spec
 from sterilot.store.db import Database
 from sterilot.store.duty_repo import DutyStore
@@ -43,6 +44,7 @@ class Store:
     db: Database
     carts: CartStore
     catalog: CatalogStore
+    containers: ContainerStore
     equipment: EquipmentStore
     duties: DutyStore
     trays: TrayStore
@@ -65,6 +67,7 @@ class Store:
             db=db,
             carts=CartStore(db),
             catalog=CatalogStore(db),
+            containers=ContainerStore(db),
             equipment=EquipmentStore(db),
             duties=DutyStore(db),
             trays=TrayStore(db),

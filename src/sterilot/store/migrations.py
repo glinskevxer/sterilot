@@ -266,6 +266,23 @@ CREATE TABLE IF NOT EXISTS case_cart_line (
 """
 
 
+VERSION_TEN_SQL = """
+CREATE TABLE IF NOT EXISTS container (
+  asset            TEXT PRIMARY KEY,
+  model            TEXT NOT NULL,
+  manufacturer     TEXT NOT NULL,
+  filter_type      TEXT NOT NULL,
+  filter_positions INTEGER NOT NULL DEFAULT 2,
+  starts_on        TEXT,
+  ends_on          TEXT,
+  last_inspection  TEXT,
+  cycles_since     INTEGER NOT NULL DEFAULT 0,
+  gasket_intact    INTEGER NOT NULL DEFAULT 1,
+  latches_intact   INTEGER NOT NULL DEFAULT 1
+);
+"""
+
+
 @dataclass(frozen=True)
 class Migration:
     """One numbered step."""
@@ -288,6 +305,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(7, "cleaning verification results", VERSION_SEVEN_SQL),
     Migration(8, "the theatre list and preference cards", VERSION_EIGHT_SQL),
     Migration(9, "case carts", VERSION_NINE_SQL),
+    Migration(10, "rigid containers", VERSION_TEN_SQL),
 )
 
 
