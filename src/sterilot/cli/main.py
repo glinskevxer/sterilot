@@ -18,6 +18,7 @@ from sterilot.cli.admin_cmd import admin
 from sterilot.cli.cart_cmd import cart
 from sterilot.cli.case_cmd import case
 from sterilot.cli.catalog_cmd import catalog
+from sterilot.cli.container_cmd import container
 from sterilot.cli.context import Context, default_db_path
 from sterilot.cli.count_cmd import count
 from sterilot.cli.cycle_cmd import cycle
@@ -129,6 +130,7 @@ main.add_command(admin)
 main.add_command(cart)
 main.add_command(case)
 main.add_command(catalog)
+main.add_command(container)
 main.add_command(count)
 main.add_command(cycle)
 main.add_command(duty)
