@@ -23,6 +23,7 @@ from sterilot.store.cycle_repo import CycleStore, SpecResolver, standard_spec
 from sterilot.store.db import Database
 from sterilot.store.duty_repo import DutyStore
 from sterilot.store.equipment_repo import EquipmentStore
+from sterilot.store.indicator_repo import IndicatorStore
 from sterilot.store.issue_repo import IssueStore
 from sterilot.store.load_repo import LoadStore
 from sterilot.store.loaner_repo import LoanerStore
@@ -53,6 +54,7 @@ class Store:
     cycles: CycleStore
     loads: LoadStore
     loaners: LoanerStore
+    indicators: IndicatorStore
     issues: IssueStore
     quality: QualityStore
     packages: PackageStore
@@ -76,6 +78,7 @@ class Store:
             cycles=cycles,
             loads=LoadStore(db, cycles),
             loaners=LoanerStore(db),
+            indicators=IndicatorStore(db),
             issues=IssueStore(db),
             quality=QualityStore(db),
             packages=PackageStore(db),

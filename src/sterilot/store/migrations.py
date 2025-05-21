@@ -283,6 +283,24 @@ CREATE TABLE IF NOT EXISTS container (
 """
 
 
+VERSION_ELEVEN_SQL = """
+CREATE TABLE IF NOT EXISTS indicator_lot (
+  lot          TEXT PRIMARY KEY,
+  family       TEXT NOT NULL,
+  detail       TEXT NOT NULL,
+  methods      TEXT NOT NULL,
+  expires_on   TEXT NOT NULL,
+  received_on  TEXT,
+  cycle_name   TEXT NOT NULL DEFAULT '',
+  organism     TEXT NOT NULL DEFAULT '',
+  readout      TEXT NOT NULL DEFAULT '',
+  in_use       INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE INDEX IF NOT EXISTS indicator_by_expiry ON indicator_lot (expires_on);
+"""
+
+
 @dataclass(frozen=True)
 class Migration:
     """One numbered step."""
@@ -306,6 +324,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(8, "the theatre list and preference cards", VERSION_EIGHT_SQL),
     Migration(9, "case carts", VERSION_NINE_SQL),
     Migration(10, "rigid containers", VERSION_TEN_SQL),
+    Migration(11, "the indicator lot register", VERSION_ELEVEN_SQL),
 )
 
 
