@@ -11,6 +11,7 @@ from pathlib import Path
 
 import click
 
+from sterilot.cli import values
 from sterilot.cli.context import Context
 from sterilot.clock import parse_day, parse_moment
 from sterilot.decon.a0 import ROUTINE_FLOOR, evaluate
@@ -185,9 +186,8 @@ def a0(context: Context, celsius: float, minutes: float, floor: float) -> None:
     )
 
 
-def _phase(value: str) -> PhaseRecord:
-    name, _, rest = value.partition("=")
-    seconds, _, peak = rest.partition(":")
+def _phase(entry: str) -> PhaseRecord:
+    name, seconds, peak = values.triple(entry)
     return PhaseRecord(
         Phase.named(name),
         Duration.parse(seconds or "0", bare_unit="s"),

@@ -12,6 +12,7 @@ import click
 from sterilot.catalog.revision import RevisionHistory
 from sterilot.catalog.substitution import Substitution, SubstitutionTable
 from sterilot.catalog.tray import CountLine, CountSheet
+from sterilot.cli import values
 from sterilot.cli.context import Context
 from sterilot.clock import parse_day
 from sterilot.errors import NotFoundError
@@ -19,15 +20,14 @@ from sterilot.interval import DateRange
 from sterilot.reporting.render import Column, bullets, table
 
 
-def _lines(context: Context, values: tuple[str, ...]) -> list[CountLine]:
+def _lines(context: Context, given: tuple[str, ...]) -> list[CountLine]:
     lines: list[CountLine] = []
-    for value in values:
-        catalog, _, rest = value.partition("=")
-        quantity, _, position = rest.partition(":")
+    for entry in given:
+        catalog, quantity, position = values.triple(entry)
         lines.append(
             CountLine(
                 context.store.catalog.instrument(catalog),
-                int(quantity or 1),
+                values.whole(quantity),
                 position,
             )
         )

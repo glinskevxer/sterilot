@@ -13,6 +13,7 @@ import click
 
 from sterilot.cases.preference_card import CardLine, PreferenceCard
 from sterilot.cases.schedule import ScheduledCase
+from sterilot.cli import values
 from sterilot.cli.context import Context
 from sterilot.clock import parse_day, parse_moment
 from sterilot.ingest.theatre_list import load_theatre_list
@@ -62,7 +63,7 @@ def add_case(
 @click.argument("reference")
 @click.option("--surgeon", required=True)
 @click.option("--procedure", required=True)
-@click.option("--line", "values", multiple=True, required=True, help="SET=QTY[:preferred]")
+@click.option("--line", "given", multiple=True, required=True, help="SET=QTY[:preferred]")
 @click.option("--from", "effective", required=True)
 @click.option("--loaner", "loaners", multiple=True)
 @click.pass_obj
@@ -71,16 +72,15 @@ def add_card(
     reference: str,
     surgeon: str,
     procedure: str,
-    values: tuple[str, ...],
+    given: tuple[str, ...],
     effective: str,
     loaners: tuple[str, ...],
 ) -> None:
     """Write a preference card."""
     lines = []
-    for value in values:
-        code, _, rest = value.partition("=")
-        quantity, _, weight = rest.partition(":")
-        lines.append(CardLine(code, int(quantity or 1), weight.strip().lower() != "preferred"))
+    for entry in given:
+        code, quantity, weight = values.triple(entry)
+        lines.append(CardLine(code, values.whole(quantity), weight.lower() != "preferred"))
     card = PreferenceCard.of(
         reference,
         surgeon,

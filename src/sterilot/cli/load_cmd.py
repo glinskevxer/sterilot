@@ -10,6 +10,7 @@ from __future__ import annotations
 import click
 
 from sterilot.assets.lifecycle import Stage, allowed_from
+from sterilot.cli import values
 from sterilot.cli.context import Context
 from sterilot.clock import parse_day
 from sterilot.indicators.chemical import (
@@ -112,7 +113,8 @@ def release(
     results: dict[str, list[ChemicalResult]] = {}
     for placement, given in ((Placement.EXTERNAL, external), (Placement.INTERNAL, internal)):
         for entry in given:
-            asset, strip = _split(entry)
+            asset, outcome = values.pair(entry)
+            strip = Outcome.named(outcome) if outcome else Outcome.PASS
             results.setdefault(asset, []).append(
                 ChemicalResult(indicator, placement, strip, context.now(), context.signed_by())
             )
@@ -220,10 +222,3 @@ def _to_the_shelf(context: Context, record: LoadRecord) -> None:
             if stage in allowed_from(tray.stage):
                 tray = tray.moved_to(stage, context.now(), context.signed_by(), record.reference)
         context.store.trays.save(tray)
-
-
-def _split(entry: str) -> tuple[str, Outcome]:
-    if "=" in entry:
-        asset, outcome = entry.split("=", 1)
-        return asset.strip(), Outcome.named(outcome)
-    return entry.strip(), Outcome.PASS

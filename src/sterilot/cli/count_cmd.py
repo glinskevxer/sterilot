@@ -13,19 +13,12 @@ from __future__ import annotations
 import click
 
 from sterilot.catalog.count import count_tray
+from sterilot.cli import values
 from sterilot.cli.context import Context
 from sterilot.clock import parse_day
 from sterilot.quality.audit import Action
 from sterilot.quality.nonconformance import Category, Nonconformance, Severity
 from sterilot.reporting.render import Column, bullets, pairs, table
-
-
-def _counted(values: tuple[str, ...]) -> dict[str, int]:
-    tally: dict[str, int] = {}
-    for value in values:
-        catalog, _, quantity = value.partition("=")
-        tally[catalog] = tally.get(catalog, 0) + int(quantity or 1)
-    return tally
 
 
 @click.group()
@@ -52,7 +45,7 @@ def tray(
     day = parse_day(on_day) if on_day else context.clock.today()
     sheet = context.store.catalog.sheet(code, day)
     approvals = context.store.catalog.substitutions()
-    result = count_tray(sheet, _counted(items), approvals, day)
+    result = count_tray(sheet, values.tally(items), approvals, day)
     click.echo(result.summary())
     if result.substitutions:
         click.echo()
