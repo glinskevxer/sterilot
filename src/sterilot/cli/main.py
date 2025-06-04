@@ -23,6 +23,7 @@ from sterilot.cli.context import Context, default_db_path
 from sterilot.cli.count_cmd import count
 from sterilot.cli.cycle_cmd import cycle
 from sterilot.cli.duty_cmd import duty
+from sterilot.cli.export_cmd import export_group
 from sterilot.cli.load_cmd import load
 from sterilot.cli.loaner_cmd import loaner
 from sterilot.cli.machine_cmd import machine
@@ -134,6 +135,7 @@ main.add_command(container)
 main.add_command(count)
 main.add_command(cycle)
 main.add_command(duty)
+main.add_command(export_group, name="export")
 main.add_command(load)
 main.add_command(loaner)
 main.add_command(quality)
