@@ -13,6 +13,8 @@ import click
 from sterilot.cli.context import Context
 from sterilot.clock import parse_day
 from sterilot.ids import LotControlNumber
+from sterilot.reporting.label import for_package as label_for
+from sterilot.reporting.label import sheet as label_sheet
 from sterilot.reporting.render import Column, bullets, pairs, table
 from sterilot.storage.event import Event, EventRecord, Package, Packaging
 from sterilot.storage.shelf import Location, ParLevel, Zone
@@ -107,6 +109,24 @@ def record_event(context: Context, asset: str, lot: str, event_name: str, note: 
     record = EventRecord(Event.named(event_name), context.now(), context.signed_by(), note)
     context.store.packages.record_event(asset, number, record)
     click.echo(record.describe())
+
+
+@shelf.command("label")
+@click.argument("asset")
+@click.argument("lot")
+@click.option("--set", "code", required=True)
+@click.option("--across", type=int, default=1, show_default=True, help="labels side by side")
+@click.option("--copies", type=int, default=1, show_default=True)
+@click.pass_obj
+def label(context: Context, asset: str, lot: str, code: str, across: int, copies: int) -> None:
+    """Print the label for a package."""
+    if copies < 1:
+        raise click.ClickException("print at least one label")
+    number = LotControlNumber.parse(lot)
+    package = context.store.packages.package(asset, number)
+    cycle = context.store.cycles.get(number)
+    made = label_for(package, code, cycle.method, cycle.operator, context.settings)
+    click.echo(label_sheet(tuple([made] * copies), across))
 
 
 @shelf.command("stock")

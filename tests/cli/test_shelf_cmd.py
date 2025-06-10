@@ -176,3 +176,33 @@ def test_the_location_check_lists_what_is_unfit(store_room: str) -> None:
 def test_a_department_with_only_good_shelves_says_so(store_room: str) -> None:
     result = invoke(store_room, "shelf", "check")
     assert "every location is fit for storage" in result.output
+
+
+def test_a_label_prints_for_a_package(store_room: str) -> None:
+    put(store_room, "ORT-0114")
+    result = invoke(store_room, "shelf", "label", "ORT-0114", LOT, "--set", "ORT-MAJOR")
+    assert result.exit_code == 0
+    assert LOT in result.output
+    assert "ORT-MAJOR  ORT-0114" in result.output
+    assert "sterile unless opened or damaged" in result.output
+
+
+def test_several_copies_print(store_room: str) -> None:
+    put(store_room, "ORT-0114")
+    result = invoke(
+        store_room, "shelf", "label", "ORT-0114", LOT, "--set", "ORT-MAJOR", "--copies", "3"
+    )
+    assert result.output.count(LOT) == 3
+
+
+def test_a_label_for_an_unknown_package_exits_not_found(store_room: str) -> None:
+    result = invoke(store_room, "shelf", "label", "ORT-9999", LOT, "--set", "ORT-MAJOR")
+    assert result.exit_code == 3
+
+
+def test_printing_no_copies_is_refused(store_room: str) -> None:
+    put(store_room, "ORT-0114")
+    result = invoke(
+        store_room, "shelf", "label", "ORT-0114", LOT, "--set", "ORT-MAJOR", "--copies", "0"
+    )
+    assert result.exit_code != 0
