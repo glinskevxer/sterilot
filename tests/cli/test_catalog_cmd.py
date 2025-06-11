@@ -134,3 +134,54 @@ def test_a_sheet_can_be_read_back_for_a_day(db: str) -> None:
 def test_an_unknown_set_exits_not_found(db: str) -> None:
     result = run(db, "catalog", "sheet", "NOPE")
     assert result.exit_code == 3
+
+
+CATALOG_FILE = """catalog,description,manufacturer,complexity,grams
+SU-2000,metzenbaum scissors,Aesculap,hinged,55
+SU-2001,mayo scissors,Aesculap,hinged,70
+"""
+
+
+def test_a_catalog_file_is_imported(db: str, tmp_path: Path) -> None:
+    path = tmp_path / "catalog.csv"
+    path.write_text(CATALOG_FILE, encoding="utf-8")
+    result = run(db, "catalog", "import", str(path))
+    assert result.exit_code == 0
+    assert "2 new, 0 changed, 0 rejected" in result.output
+    assert "SU-2000" in run(db, "catalog", "list").output
+
+
+def test_a_dry_run_saves_nothing(db: str, tmp_path: Path) -> None:
+    path = tmp_path / "catalog.csv"
+    path.write_text(CATALOG_FILE, encoding="utf-8")
+    result = run(db, "catalog", "import", str(path), "--dry-run")
+    assert "dry run, nothing was saved" in result.output
+    assert "SU-2000" not in run(db, "catalog", "list").output
+
+
+def test_a_change_is_reported_and_not_applied(db: str, tmp_path: Path) -> None:
+    path = tmp_path / "catalog.csv"
+    path.write_text(CATALOG_FILE, encoding="utf-8")
+    run(db, "catalog", "import", str(path))
+    path.write_text(CATALOG_FILE.replace("metzenbaum scissors", "metz scissors"), encoding="utf-8")
+    result = run(db, "catalog", "import", str(path))
+    assert "1 changed" in result.output
+    assert "SU-2000 differs from the entry we hold" in result.output
+    assert "metzenbaum" in run(db, "catalog", "show", "SU-2000").output
+
+
+def test_a_change_can_be_applied_when_asked(db: str, tmp_path: Path) -> None:
+    path = tmp_path / "catalog.csv"
+    path.write_text(CATALOG_FILE, encoding="utf-8")
+    run(db, "catalog", "import", str(path))
+    path.write_text(CATALOG_FILE.replace("metzenbaum scissors", "metz scissors"), encoding="utf-8")
+    run(db, "catalog", "import", str(path), "--apply-changes")
+    assert "metz scissors" in run(db, "catalog", "show", "SU-2000").output
+
+
+def test_a_bad_row_exits_two(db: str, tmp_path: Path) -> None:
+    path = tmp_path / "catalog.csv"
+    path.write_text(CATALOG_FILE + "SU-2002,broken\n", encoding="utf-8")
+    result = run(db, "catalog", "import", str(path))
+    assert result.exit_code == 2
+    assert "wrong number of fields" in result.output

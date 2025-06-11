@@ -7,12 +7,15 @@ the instructions for use for every item on a sheet.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import click
 
 from sterilot.catalog.instrument import Complexity, Criticality, Instrument
 from sterilot.catalog.material import material_named, standard_materials
 from sterilot.cli.context import Context
 from sterilot.clock import parse_day
+from sterilot.ingest.catalog_import import load_catalog
 from sterilot.methods import Method
 from sterilot.reporting.render import Column, bullets, pairs, table
 from sterilot.units.mass import Mass
@@ -100,6 +103,34 @@ def show(context: Context, catalog_number: str) -> None:
         click.echo()
         click.echo("methods it does not")
         click.echo(bullets(refused))
+
+
+@catalog.command("import")
+@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--apply-changes", is_flag=True, help="update entries that already exist")
+@click.option("--dry-run", is_flag=True, help="read the file without saving anything")
+@click.pass_obj
+def import_catalog(context: Context, path: Path, apply_changes: bool, dry_run: bool) -> None:
+    """Load a catalog file, keeping new entries apart from changes."""
+    known = {item.catalog: item for item in context.store.catalog.instruments()}
+    result = load_catalog(path.read_text(encoding="utf-8"), known)
+    if not dry_run:
+        for item in result.instruments:
+            context.store.catalog.save_instrument(item)
+        if apply_changes:
+            for item in result.changes:
+                context.store.catalog.save_instrument(item)
+    click.echo(result.summary())
+    if result.changes and not apply_changes:
+        click.echo()
+        click.echo(
+            bullets(f"{item.catalog} differs from the entry we hold" for item in result.changes)
+        )
+    if dry_run:
+        click.echo("dry run, nothing was saved")
+    if result.problems:
+        click.echo(bullets(item.describe() for item in result.problems))
+        raise SystemExit(2)
 
 
 @catalog.command("list")
