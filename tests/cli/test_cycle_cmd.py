@@ -161,3 +161,37 @@ def test_recording_without_a_badge_is_refused(tmp_path: Path) -> None:
         ],
     )
     assert result.exit_code == 7
+
+
+TRACE = """offset,temperature
+0,100.0
+60,134.0
+300,134.0
+360,110.0
+"""
+
+
+def test_a_trace_file_is_scored(db: str, tmp_path: Path) -> None:
+    path = tmp_path / "trace.csv"
+    path.write_text(TRACE, encoding="utf-8")
+    result = run(db, "cycle", "trace", str(path))
+    assert result.exit_code == 0
+    assert "F0" in result.output
+    assert "clears" in result.output
+    assert "log reductions" in result.output
+
+
+def test_a_weak_trace_exits_with_the_policy_status(db: str, tmp_path: Path) -> None:
+    path = tmp_path / "trace.csv"
+    path.write_text(TRACE.replace("134.0", "115.0"), encoding="utf-8")
+    result = run(db, "cycle", "trace", str(path))
+    assert result.exit_code == 5
+    assert "short" in result.output
+
+
+def test_a_file_with_no_usable_trace_exits_two(db: str, tmp_path: Path) -> None:
+    path = tmp_path / "trace.csv"
+    path.write_text("offset,temperature\n0,100.0\n", encoding="utf-8")
+    result = run(db, "cycle", "trace", str(path))
+    assert result.exit_code == 2
+    assert "no trace read" in result.output

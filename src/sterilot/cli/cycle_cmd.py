@@ -16,9 +16,12 @@ from sterilot.cli.context import Context
 from sterilot.clock import parse_day, parse_moment
 from sterilot.ids import LotControlNumber
 from sterilot.ingest.printout import parse_printout
+from sterilot.ingest.trace_import import load_trace
 from sterilot.methods import Method
 from sterilot.reporting.render import Column, bullets, pairs, table
 from sterilot.sterilizer.cycle import SterilizerCycle
+from sterilot.sterilizer.lethality import TERMINAL_FLOOR_MINUTES
+from sterilot.sterilizer.lethality import evaluate as evaluate_f0
 from sterilot.sterilizer.parameters import CycleMeasurements, CycleSpec
 from sterilot.units.duration import Duration
 from sterilot.units.pressure import Pressure
@@ -142,6 +145,34 @@ def check(context: Context, lot: str) -> None:
     click.echo(f"{found.lot.format()} has {len(failures)} problems")
     click.echo(bullets(failures))
     raise SystemExit(5)
+
+
+@cycle.command("trace")
+@click.argument("path", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--floor", type=float, default=TERMINAL_FLOOR_MINUTES, show_default=True)
+@click.pass_obj
+def trace(context: Context, path: Path, floor: float) -> None:
+    """Score a probe trace file for lethality."""
+    result = load_trace(path.read_text(encoding="utf-8"))
+    click.echo(result.summary())
+    if result.trace is None:
+        raise SystemExit(2)
+    scored = evaluate_f0(result.trace, floor)
+    click.echo(
+        pairs(
+            [
+                ("peak", scored.peak.format()),
+                ("time above 121.1", scored.time_above_reference.spelled()),
+                ("F0", f"{scored.minutes:.1f} min"),
+                ("log reductions", f"{scored.log_reductions():.1f}"),
+                ("verdict", "clears" if scored.passed else "short"),
+            ]
+        )
+    )
+    if result.problems:
+        click.echo(bullets(item.describe() for item in result.problems))
+    if not scored.passed:
+        raise SystemExit(5)
 
 
 @cycle.command("day")
