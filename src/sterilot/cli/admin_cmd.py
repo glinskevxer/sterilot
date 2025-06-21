@@ -17,6 +17,7 @@ from sterilot.clock import parse_day
 from sterilot.errors import ConflictError
 from sterilot.reporting import compliance
 from sterilot.reporting.render import Column, bullets, pairs, table
+from sterilot.store import retention
 from sterilot.store.migrations import current_version, latest_version, migrate, pending
 
 
@@ -89,6 +90,26 @@ def compliance_report(context: Context, start: str, end: str) -> None:
     click.echo(report.render())
     if not report.clean:
         raise SystemExit(5)
+
+
+@admin.command("purge")
+@click.option("--years", type=int, default=7, show_default=True, help="how long records are kept")
+@click.option("--apply-purge", is_flag=True, help="actually remove them")
+@click.pass_obj
+def purge_command(context: Context, years: int, apply_purge: bool) -> None:
+    """Remove records older than the department's retention period."""
+    before = retention.cutoff(context.clock.today(), years)
+    counted = (
+        retention.plan(context.store.db, before)
+        if not apply_purge
+        else retention.purge(context.store.db, before)
+    )
+    click.echo(counted.describe())
+    if counted.empty:
+        click.echo("nothing to remove")
+        return
+    if not apply_purge:
+        click.echo("dry run, nothing was removed")
 
 
 @admin.command("settings")

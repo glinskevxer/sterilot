@@ -106,3 +106,16 @@ def test_migrating_an_old_file_brings_it_up(tmp_path: Path) -> None:
     result = invoke(path, "admin", "migrate", migrate=False)
     assert result.exit_code == 0
     assert f"now at version {latest_version()}" in result.output
+
+
+def test_a_purge_dry_run_removes_nothing(db: str) -> None:
+    add_sterilizer(db)
+    result = invoke(db, "admin", "purge", "--years", "7")
+    assert result.exit_code == 0
+    assert "nothing to remove" in result.output
+
+
+def test_a_short_retention_is_refused(db: str) -> None:
+    result = invoke(db, "admin", "purge", "--years", "1")
+    assert result.exit_code == 2
+    assert "retention floor" in result.output
