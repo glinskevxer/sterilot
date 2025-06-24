@@ -38,7 +38,9 @@ from sterilot.cli.staff_cmd import staff
 from sterilot.cli.tray_cmd import tray
 from sterilot.cli.verify_cmd import verify
 from sterilot.cli.wash_cmd import wash
+from sterilot.clock import parse_day
 from sterilot.errors import SterilotError
+from sterilot.reporting.doctor import check as check_department
 from sterilot.reporting.render import pairs
 
 
@@ -119,6 +121,18 @@ def health(context: Context) -> None:
     for problem in problems:
         click.echo(problem, err=True)
     raise SystemExit(6)
+
+
+@main.command()
+@click.option("--on", "on_day", default=None, help="the day to check, defaults to today")
+@click.pass_obj
+def doctor(context: Context, on_day: str | None) -> None:
+    """Everything the department is behind on."""
+    day = parse_day(on_day) if on_day else context.clock.today()
+    report = check_department(context.store, day, context.settings)
+    click.echo(report.render())
+    if report.stops:
+        raise SystemExit(5)
 
 
 @main.command(name="where")

@@ -147,3 +147,36 @@ def test_a_context_with_a_badge_signs(tmp_path: Path) -> None:
         assert context.now() is not None
     finally:
         context.close()
+
+
+def test_the_doctor_says_when_nothing_is_outstanding(tmp_path: Path) -> None:
+    result = run(["doctor"], tmp_path)
+    assert result.exit_code == 0
+    assert "nothing outstanding" in result.output
+
+
+def test_the_doctor_exits_with_the_policy_status_on_a_stop(tmp_path: Path) -> None:
+    path = str(tmp_path / "sterilot.sqlite3")
+    runner = CliRunner()
+    runner.invoke(
+        main,
+        [
+            "--db",
+            path,
+            "--badge",
+            "T-4471",
+            "machine",
+            "add-sterilizer",
+            "AC-1",
+            "--model",
+            "Amsco",
+            "--manufacturer",
+            "Steris",
+            "--method",
+            "prevac",
+        ],
+    )
+    runner.invoke(main, ["--db", path, "--badge", "T-4471", "machine", "repaired", "AC-1"])
+    result = runner.invoke(main, ["--db", path, "doctor"])
+    assert result.exit_code == 5
+    assert "owes 3 qualification runs" in result.output
