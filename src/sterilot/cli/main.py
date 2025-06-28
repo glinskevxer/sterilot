@@ -27,6 +27,7 @@ from sterilot.cli.export_cmd import export_group
 from sterilot.cli.load_cmd import load
 from sterilot.cli.loaner_cmd import loaner
 from sterilot.cli.machine_cmd import machine
+from sterilot.cli.maintenance_cmd import maintenance
 from sterilot.cli.quality_cmd import quality
 from sterilot.cli.recall_cmd import recall
 from sterilot.cli.repair_cmd import repair
@@ -161,6 +162,7 @@ main.add_command(shelf)
 main.add_command(sheet)
 main.add_command(staff)
 main.add_command(machine)
+main.add_command(maintenance)
 main.add_command(tray)
 main.add_command(verify)
 main.add_command(wash)

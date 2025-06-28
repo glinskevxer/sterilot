@@ -13,7 +13,7 @@ whole point: whichever comes first.
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, timedelta
 
 from sterilot.errors import ValidationError
@@ -83,13 +83,9 @@ class Task:
         return None
 
     def after_cycle(self) -> Task:
-        from dataclasses import replace
-
         return replace(self, cycles_since=self.cycles_since + 1)
 
     def done(self, day: date) -> Task:
-        from dataclasses import replace
-
         return replace(self, last_done=day, cycles_since=0)
 
     def describe(self) -> str:

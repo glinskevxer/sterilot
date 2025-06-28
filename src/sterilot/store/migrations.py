@@ -301,6 +301,20 @@ CREATE INDEX IF NOT EXISTS indicator_by_expiry ON indicator_lot (expires_on);
 """
 
 
+VERSION_TWELVE_SQL = """
+CREATE TABLE IF NOT EXISTS maintenance_task (
+  code          TEXT NOT NULL,
+  equipment_id  TEXT NOT NULL,
+  description   TEXT NOT NULL,
+  every_days    INTEGER,
+  every_cycles  INTEGER,
+  last_done     TEXT,
+  cycles_since  INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (equipment_id, code)
+);
+"""
+
+
 @dataclass(frozen=True)
 class Migration:
     """One numbered step."""
@@ -325,6 +339,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(9, "case carts", VERSION_NINE_SQL),
     Migration(10, "rigid containers", VERSION_TEN_SQL),
     Migration(11, "the indicator lot register", VERSION_ELEVEN_SQL),
+    Migration(12, "planned maintenance", VERSION_TWELVE_SQL),
 )
 
 

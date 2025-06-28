@@ -27,6 +27,7 @@ from sterilot.store.indicator_repo import IndicatorStore
 from sterilot.store.issue_repo import IssueStore
 from sterilot.store.load_repo import LoadStore
 from sterilot.store.loaner_repo import LoanerStore
+from sterilot.store.maintenance_repo import MaintenanceStore
 from sterilot.store.migrations import current_version, latest_version, migrate, problems
 from sterilot.store.package_repo import PackageStore
 from sterilot.store.quality_repo import QualityStore
@@ -57,6 +58,7 @@ class Store:
     indicators: IndicatorStore
     issues: IssueStore
     quality: QualityStore
+    maintenance: MaintenanceStore
     packages: PackageStore
     repairs: RepairStore
     schedule: ScheduleStore
@@ -81,6 +83,7 @@ class Store:
             indicators=IndicatorStore(db),
             issues=IssueStore(db),
             quality=QualityStore(db),
+            maintenance=MaintenanceStore(db),
             packages=PackageStore(db),
             repairs=RepairStore(db),
             schedule=ScheduleStore(db),
