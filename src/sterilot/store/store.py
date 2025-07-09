@@ -21,6 +21,7 @@ from sterilot.store.catalog_repo import CatalogStore
 from sterilot.store.container_repo import ContainerStore
 from sterilot.store.cycle_repo import CycleStore, SpecResolver, standard_spec
 from sterilot.store.db import Database
+from sterilot.store.decon_repo import DeconStore
 from sterilot.store.duty_repo import DutyStore
 from sterilot.store.equipment_repo import EquipmentStore
 from sterilot.store.indicator_repo import IndicatorStore
@@ -48,6 +49,7 @@ class Store:
     catalog: CatalogStore
     containers: ContainerStore
     equipment: EquipmentStore
+    decon: DeconStore
     duties: DutyStore
     trays: TrayStore
     washers: WasherStore
@@ -73,6 +75,7 @@ class Store:
             catalog=CatalogStore(db),
             containers=ContainerStore(db),
             equipment=EquipmentStore(db),
+            decon=DeconStore(db),
             duties=DutyStore(db),
             trays=TrayStore(db),
             washers=WasherStore(db),

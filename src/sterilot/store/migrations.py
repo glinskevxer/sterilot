@@ -315,6 +315,34 @@ CREATE TABLE IF NOT EXISTS maintenance_task (
 """
 
 
+VERSION_THIRTEEN_SQL = """
+CREATE TABLE IF NOT EXISTS point_of_use (
+  case_number   TEXT NOT NULL,
+  finished_at   TEXT NOT NULL,
+  collected_at  TEXT NOT NULL,
+  kept_moist    INTEGER NOT NULL DEFAULT 1,
+  closed        INTEGER NOT NULL DEFAULT 1,
+  soil_removed  INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY (case_number, finished_at)
+);
+
+CREATE TABLE IF NOT EXISTS manual_clean (
+  catalog       TEXT NOT NULL,
+  cleaned_at    TEXT NOT NULL,
+  by_badge      TEXT NOT NULL,
+  soaked_s      REAL NOT NULL,
+  detergent_c   REAL NOT NULL,
+  brush_mm      REAL,
+  brush_passes  INTEGER NOT NULL DEFAULT 0,
+  disassembled  INTEGER NOT NULL DEFAULT 0,
+  case_number   TEXT NOT NULL DEFAULT '',
+  PRIMARY KEY (catalog, cleaned_at)
+);
+
+CREATE INDEX IF NOT EXISTS manual_clean_by_case ON manual_clean (case_number);
+"""
+
+
 @dataclass(frozen=True)
 class Migration:
     """One numbered step."""
@@ -340,6 +368,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(10, "rigid containers", VERSION_TEN_SQL),
     Migration(11, "the indicator lot register", VERSION_ELEVEN_SQL),
     Migration(12, "planned maintenance", VERSION_TWELVE_SQL),
+    Migration(13, "point of use and the sink", VERSION_THIRTEEN_SQL),
 )
 
 
