@@ -22,6 +22,7 @@ from sterilot.cli.container_cmd import container
 from sterilot.cli.context import Context, default_db_path
 from sterilot.cli.count_cmd import count
 from sterilot.cli.cycle_cmd import cycle
+from sterilot.cli.decon_cmd import decon
 from sterilot.cli.duty_cmd import duty
 from sterilot.cli.export_cmd import export_group
 from sterilot.cli.load_cmd import load
@@ -149,6 +150,7 @@ main.add_command(catalog)
 main.add_command(container)
 main.add_command(count)
 main.add_command(cycle)
+main.add_command(decon)
 main.add_command(duty)
 main.add_command(export_group, name="export")
 main.add_command(load)
