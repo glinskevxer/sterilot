@@ -42,6 +42,7 @@ from sterilot.cli.verify_cmd import verify
 from sterilot.cli.wash_cmd import wash
 from sterilot.clock import parse_day
 from sterilot.errors import SterilotError
+from sterilot.reporting.board import build as build_board
 from sterilot.reporting.doctor import check as check_department
 from sterilot.reporting.render import pairs
 
@@ -135,6 +136,13 @@ def doctor(context: Context, on_day: str | None) -> None:
     click.echo(report.render())
     if report.stops:
         raise SystemExit(5)
+
+
+@main.command()
+@click.pass_obj
+def board(context: Context) -> None:
+    """Where the work is right now."""
+    click.echo(build_board(context.store, context.now(), context.settings).render())
 
 
 @main.command(name="where")

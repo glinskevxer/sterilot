@@ -180,3 +180,20 @@ def test_the_doctor_exits_with_the_policy_status_on_a_stop(tmp_path: Path) -> No
     result = runner.invoke(main, ["--db", path, "doctor"])
     assert result.exit_code == 5
     assert "owes 3 qualification runs" in result.output
+
+
+def test_the_board_prints_the_quiet_department(tmp_path: Path) -> None:
+    result = run(["board"], tmp_path)
+    assert result.exit_code == 0
+    assert "trays in the loop" in result.output
+    assert "Central Service board" in result.output
+
+
+def test_the_board_counts_a_tray_in_the_loop(tmp_path: Path) -> None:
+    path = str(tmp_path / "sterilot.sqlite3")
+    runner = CliRunner()
+    runner.invoke(
+        main, ["--db", path, "--badge", "T-4471", "tray", "register", "ORT-0114", "ORT-MAJOR"]
+    )
+    result = runner.invoke(main, ["--db", path, "board"])
+    assert "soiled" in result.output
