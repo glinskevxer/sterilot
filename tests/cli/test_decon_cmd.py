@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from click.testing import Result
 
 from tests.cli.conftest import invoke
 
@@ -36,7 +37,7 @@ def dirty(db: str) -> str:
     return db
 
 
-def record_trip(db: str, *extra: str) -> object:
+def record_trip(db: str, *extra: str) -> Result:
     return invoke(
         db,
         "decon",
@@ -52,20 +53,20 @@ def record_trip(db: str, *extra: str) -> object:
 
 def test_a_prompt_trip_is_recorded(dirty: str) -> None:
     result = record_trip(dirty)
-    assert result.exit_code == 0  # type: ignore[attr-defined]
-    assert "OR3-01 collected after 40m" in result.output  # type: ignore[attr-defined]
+    assert result.exit_code == 0
+    assert "OR3-01 collected after 40m" in result.output
 
 
 def test_a_dry_trip_doubles_the_soak(dirty: str) -> None:
     result = record_trip(dirty, "--dry")
-    assert "not kept moist" in result.output  # type: ignore[attr-defined]
-    assert "2 times the usual" in result.output  # type: ignore[attr-defined]
+    assert "not kept moist" in result.output
+    assert "2 times the usual" in result.output
 
 
 def test_every_room_problem_is_named(dirty: str) -> None:
     result = record_trip(dirty, "--dry", "--open-container", "--soil-left")
-    assert "gross soil was not removed" in result.output  # type: ignore[attr-defined]
-    assert "open container" in result.output  # type: ignore[attr-defined]
+    assert "gross soil was not removed" in result.output
+    assert "open container" in result.output
 
 
 def test_a_good_sink_record_passes(dirty: str) -> None:

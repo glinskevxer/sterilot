@@ -343,6 +343,16 @@ CREATE INDEX IF NOT EXISTS manual_clean_by_case ON manual_clean (case_number);
 """
 
 
+VERSION_FOURTEEN_SQL = """
+CREATE INDEX IF NOT EXISTS load_by_status ON load_record (status, built_at);
+CREATE INDEX IF NOT EXISTS issue_by_disposition ON issue (disposition, issued_at);
+CREATE INDEX IF NOT EXISTS nonconformance_open ON nonconformance (closed_at, raised_at);
+CREATE INDEX IF NOT EXISTS package_by_age ON package (sterilized_at, asset);
+CREATE INDEX IF NOT EXISTS tray_by_code ON tray (code, asset);
+CREATE INDEX IF NOT EXISTS cart_by_delivery ON case_cart (delivered_at, built_at);
+"""
+
+
 @dataclass(frozen=True)
 class Migration:
     """One numbered step."""
@@ -369,6 +379,7 @@ MIGRATIONS: tuple[Migration, ...] = (
     Migration(11, "the indicator lot register", VERSION_ELEVEN_SQL),
     Migration(12, "planned maintenance", VERSION_TWELVE_SQL),
     Migration(13, "point of use and the sink", VERSION_THIRTEEN_SQL),
+    Migration(14, "index the queries the floor runs most", VERSION_FOURTEEN_SQL),
 )
 
 
