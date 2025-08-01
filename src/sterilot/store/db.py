@@ -124,6 +124,26 @@ class Database:
         self.depth = 0
         self.connection.execute("COMMIT")
 
+    def checkpoint(self) -> tuple[int, int]:
+        """Fold the write ahead log back into the database file.
+
+        Returns the pages written and the pages left. Outside write ahead mode
+        SQLite answers with minus one for both, which is not a page count, so
+        it comes back as zero: nothing was written and nothing is left.
+        """
+        row = self.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
+        if row is None:
+            return 0, 0
+        return max(int(row[1] or 0), 0), max(int(row[2] or 0), 0)
+
+    def journal_mode(self) -> str:
+        found = self.scalar("PRAGMA journal_mode")
+        return str(found)
+
+    def in_use(self) -> bool:
+        """True while this connection is inside a transaction."""
+        return bool(self.connection.in_transaction)
+
     def tables(self) -> tuple[str, ...]:
         rows = self.query(
             "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"

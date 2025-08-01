@@ -112,6 +112,15 @@ def purge_command(context: Context, years: int, apply_purge: bool) -> None:
         click.echo("dry run, nothing was removed")
 
 
+@admin.command("checkpoint")
+@click.pass_obj
+def checkpoint(context: Context) -> None:
+    """Fold the write ahead log back into the database file."""
+    mode = context.store.db.journal_mode()
+    written, left = context.store.db.checkpoint()
+    click.echo(pairs([("journal", mode), ("pages written", written), ("pages left", left)]))
+
+
 @admin.command("settings")
 @click.pass_obj
 def settings(context: Context) -> None:
