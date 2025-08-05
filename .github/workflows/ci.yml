@@ -18,6 +18,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - name: install ruff
         run: python -m pip install --disable-pip-version-check ruff==0.9.6
       - name: ruff check
@@ -32,6 +34,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - name: install
         run: |
           python -m pip install --disable-pip-version-check -e ".[dev]"
@@ -49,6 +53,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - name: install
         run: |
           python -m pip install --disable-pip-version-check -e ".[dev]"
@@ -71,3 +77,48 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check dist/*.whl
           python -c "import sterilot; print(sterilot.__version__)"
+      - name: the console script runs
+        run: sterilot --version
+
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: install
+        run: python -m pip install --disable-pip-version-check .
+      - name: run a day through the command line
+        env:
+          STERILOT_DB: ${{ runner.temp }}/smoke.sqlite3
+          STERILOT_BADGE: T-4471
+        run: |
+          set -euo pipefail
+          sterilot status
+          sterilot machine add-sterilizer AC-1 --model "Amsco 400" \
+            --manufacturer Steris --method prevac
+          sterilot machine add-washer WD-2 --model "Reliance 444" \
+            --manufacturer Steris --qualified "$(date +%F)"
+          sterilot catalog add SU-1234 "kelly forceps" --manufacturer "V Mueller" \
+            --complexity hinged --grams 60
+          sterilot sheet define ORT-MAJOR "orthopaedic major set" \
+            --line SU-1234=4 --from 2025-01-01
+          sterilot tray register ORT-0114 ORT-MAJOR
+          for stage in decontamination clean assembled; do
+            sterilot tray move ORT-0114 "$stage"
+          done
+          sterilot duty log AC-1 "air removal" --on 2025-05-06
+          sterilot duty log AC-1 biological --on 2025-05-06
+          sterilot cycle record --equipment AC-1 --method prevac \
+            --started "2025-05-06 08:00" --temp 133.4C --exposure 4 --dry 31 \
+            --pulses 4 --pressure "29.6 psig"
+          sterilot load build LD-1 --lot AC-1-20250506-01 --tray ORT-0114
+          sterilot load release LD-1 --ci-lot CI-25E01 --ci-expires 2026-12-31 \
+            --external ORT-0114 --internal ORT-0114
+          sterilot report daily --on 2025-05-06
+          sterilot board
+          sterilot doctor
+          sterilot health

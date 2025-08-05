@@ -11,6 +11,8 @@ the store went in has been at a handover between two of these steps.
 
 from __future__ import annotations
 
+from datetime import date
+
 import pytest
 
 from tests.cli.conftest import add_sterilizer, add_washer, assemble, invoke, record_cycle
@@ -269,3 +271,58 @@ def test_the_shelf_and_the_list_disagree_when_stock_is_short(department: str) ->
     cart = invoke(db, "cart", "build", "CC-991", "OR3-01")
     assert cart.exit_code == 5
     assert "came up 1 short" in cart.output
+
+
+def test_the_smoke_sequence_the_build_runs_still_works(db: str) -> None:
+    """The same run the CI smoke job does, so a break shows up here first."""
+    assert invoke(db, "status").exit_code == 0
+    add_sterilizer(db)
+    add_washer(db, "WD-2", "--qualified", date.today().isoformat())
+    invoke(
+        db,
+        "catalog",
+        "add",
+        "SU-1234",
+        "kelly forceps",
+        "--manufacturer",
+        "V Mueller",
+        "--complexity",
+        "hinged",
+        "--grams",
+        "60",
+    )
+    invoke(
+        db,
+        "sheet",
+        "define",
+        "ORT-MAJOR",
+        "orthopaedic major set",
+        "--line",
+        "SU-1234=4",
+        "--from",
+        "2025-01-01",
+    )
+    assemble(db, "ORT-0114")
+    invoke(db, "duty", "log", "AC-1", "air removal", "--on", DAY)
+    invoke(db, "duty", "log", "AC-1", "biological", "--on", DAY)
+    record_cycle(db, "2025-05-06 08:00", run=1)
+    assert invoke(db, "load", "build", "LD-1", "--lot", LOT, "--tray", "ORT-0114").exit_code == 0
+    assert (
+        invoke(
+            db,
+            "load",
+            "release",
+            "LD-1",
+            "--ci-lot",
+            "CI-25E01",
+            "--ci-expires",
+            "2026-12-31",
+            "--external",
+            "ORT-0114",
+            "--internal",
+            "ORT-0114",
+        ).exit_code
+        == 0
+    )
+    for command in (["report", "daily", "--on", DAY], ["board"], ["doctor"], ["health"]):
+        assert invoke(db, *command).exit_code == 0
