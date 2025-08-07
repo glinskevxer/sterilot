@@ -145,6 +145,9 @@ def build(store: Store, day: date, settings: Settings | None = None) -> DailyRep
     rules = settings or Settings()
     cycles: list[SterilizerCycle] = []
     gaps: list[DutyGap] = []
+    # A machine that did not run owes nothing. That is true of a washer as much
+    # as of a chamber, and it was not until the day the report was read on a
+    # morning with no wash cycles that anybody noticed only one of them said so.
     for unit in store.equipment.sterilizers():
         ran = store.cycles.on_day(unit.equipment, day)
         cycles.extend(ran)
@@ -155,7 +158,7 @@ def build(store: Store, day: date, settings: Settings | None = None) -> DailyRep
             gaps.append(DutyGap(unit.equipment, duty.label))
     for washer in store.equipment.washers():
         owed = duties_for_washer(washer)
-        if not owed:
+        if not owed or not store.washers.on_day(washer.equipment, day):
             continue
         logged = {
             entry.duty for entry in store.duties.on_day(washer.equipment, day) if entry.passed

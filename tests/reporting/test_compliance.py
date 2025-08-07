@@ -5,6 +5,8 @@ from datetime import date, datetime
 
 import pytest
 
+from sterilot.decon.cycle import Phase, PhaseRecord, WasherCycle
+from sterilot.decon.washer import Washer, WasherClass
 from sterilot.ids import LotControlNumber
 from sterilot.load.build import Load, LoadItem
 from sterilot.load.record import LoadRecord, LoadStatus
@@ -172,3 +174,58 @@ def test_the_render_carries_every_section(store: Store) -> None:
     assert "Machines" in rendered
     assert "Loads" in rendered
     assert "daily test coverage" in rendered
+
+
+def washer(store: Store) -> None:
+    store.equipment.save_washer(
+        Washer("WD-2", "Reliance 444", "Steris", WasherClass.SINGLE_CHAMBER)
+    )
+
+
+def wash_cycle(store: Store, day: date) -> None:
+    program = store.washers.standard_program()
+    store.washers.save_cycle(
+        WasherCycle(
+            equipment="WD-2",
+            program=program,
+            number=1,
+            started_at=datetime.combine(day, datetime.min.time()).replace(hour=6),
+            operator="T-4471",
+            phases=(PhaseRecord(Phase.WASH, Duration.of_minutes(6), Temperature(60.0)),),
+        )
+    )
+
+
+def test_a_washer_that_never_ran_has_nothing_to_cover(store: Store) -> None:
+    washer(store)
+    report = compliance.build(store, START, END)
+    coverage = next(item for item in report.machines if item.kind == "washer")
+    assert coverage.days_run == 0
+    assert coverage.gaps == 0
+    assert report.clean
+
+
+def test_a_washer_day_without_its_cleaning_test_is_a_gap(store: Store) -> None:
+    washer(store)
+    wash_cycle(store, date(2025, 4, 2))
+    report = compliance.build(store, START, END)
+    coverage = next(item for item in report.machines if item.kind == "washer")
+    assert coverage.days_run == 1
+    assert coverage.gaps == 1
+    assert not report.clean
+
+
+def test_logging_the_cleaning_test_closes_the_washer_gap(store: Store) -> None:
+    washer(store)
+    wash_cycle(store, date(2025, 4, 2))
+    store.duties.save(LogEntry(date(2025, 4, 2), "WD-2", Duty.CLEANING, True, "T-4471"))
+    report = compliance.build(store, START, END)
+    coverage = next(item for item in report.machines if item.kind == "washer")
+    assert coverage.gaps == 0
+    assert report.coverage == pytest.approx(1.0)
+
+
+def test_an_ultrasonic_is_not_in_the_coverage_table(store: Store) -> None:
+    store.equipment.save_washer(Washer("US-1", "Sonic", "Steris", WasherClass.ULTRASONIC))
+    report = compliance.build(store, START, END)
+    assert [item.equipment for item in report.machines if item.kind == "washer"] == []

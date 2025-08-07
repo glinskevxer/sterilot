@@ -6,6 +6,8 @@ from datetime import date, datetime
 import pytest
 
 from sterilot.cases.issue import Issue
+from sterilot.decon.cycle import Phase, PhaseRecord, WasherCycle
+from sterilot.decon.washer import Washer, WasherClass
 from sterilot.ids import LotControlNumber
 from sterilot.load.build import Load, LoadItem
 from sterilot.load.record import LoadRecord
@@ -163,3 +165,50 @@ def test_the_rendered_report_carries_every_section(store: Store) -> None:
 def test_trays_out_are_counted(store: Store) -> None:
     store.issues.save(Issue("ORT-0114", "OR3-20250212-01", datetime(2025, 2, 12, 7, 0), "T-4471"))
     assert daily.build(store, DAY).trays_out == 1
+
+
+def washer(store: Store) -> None:
+    store.equipment.save_washer(
+        Washer("WD-2", "Reliance 444", "Steris", WasherClass.SINGLE_CHAMBER)
+    )
+
+
+def wash_cycle(store: Store, day: date) -> None:
+    program = store.washers.standard_program()
+    store.washers.save_cycle(
+        WasherCycle(
+            equipment="WD-2",
+            program=program,
+            number=1,
+            started_at=datetime.combine(day, datetime.min.time()).replace(hour=6),
+            operator="T-4471",
+            phases=(PhaseRecord(Phase.WASH, Duration.of_minutes(6), Temperature(60.0)),),
+        )
+    )
+
+
+def test_a_washer_that_did_not_run_owes_no_cleaning_test(store: Store) -> None:
+    washer(store)
+    report = daily.build(store, DAY)
+    assert report.gaps == ()
+    assert report.clean
+
+
+def test_a_washer_that_ran_owes_its_cleaning_test(store: Store) -> None:
+    washer(store)
+    wash_cycle(store, DAY)
+    report = daily.build(store, DAY)
+    assert [gap.describe() for gap in report.gaps] == ["WD-2 has no cleaning test"]
+
+
+def test_the_washer_gap_closes_when_the_test_is_logged(store: Store) -> None:
+    washer(store)
+    wash_cycle(store, DAY)
+    store.duties.save(LogEntry(DAY, "WD-2", Duty.CLEANING, True, "T-4471"))
+    assert daily.build(store, DAY).gaps == ()
+
+
+def test_an_ultrasonic_owes_nothing_even_when_it_runs(store: Store) -> None:
+    store.equipment.save_washer(Washer("US-1", "Sonic", "Steris", WasherClass.ULTRASONIC))
+    report = daily.build(store, DAY)
+    assert report.gaps == ()
