@@ -10,6 +10,25 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Proprietary" }
 authors = [{ name = "glinskevxer" }]
+keywords = [
+  "sterile processing",
+  "central service",
+  "sterilization",
+  "instrument tracking",
+  "healthcare",
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Console",
+  "Intended Audience :: Healthcare Industry",
+  "License :: Other/Proprietary License",
+  "Natural Language :: English",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering :: Medical Science Apps.",
+  "Typing :: Typed",
+]
 dependencies = ["click==8.1.8"]
 
 [project.optional-dependencies]

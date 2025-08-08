@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+import click
 from click.testing import CliRunner, Result
 
 from sterilot import __version__
@@ -197,3 +198,51 @@ def test_the_board_counts_a_tray_in_the_loop(tmp_path: Path) -> None:
     )
     result = runner.invoke(main, ["--db", path, "board"])
     assert "soiled" in result.output
+
+
+def test_the_command_list_names_every_group() -> None:
+    result = CliRunner().invoke(main, ["commands"])
+    assert result.exit_code == 0
+    names = [line.split()[0] for line in result.output.splitlines() if line.strip()]
+    for expected in ("catalog", "cycle", "load", "recall", "report", "shelf", "staff"):
+        assert expected in names
+
+
+def test_each_command_carries_a_summary() -> None:
+    result = CliRunner().invoke(main, ["commands"])
+    for line in result.output.splitlines():
+        assert len(line.split()) > 1, line
+
+
+def test_the_help_explains_the_exit_statuses() -> None:
+    result = CliRunner().invoke(main, ["--help"])
+    flat = " ".join(result.output.split())
+    assert "Exit statuses: 0 fine" in flat
+    assert "5 a rule refused it" in flat
+    assert "STERILOT_DB" in flat
+
+
+def test_every_group_has_help_text() -> None:
+    from sterilot.cli.main import main as root
+
+    for name, command in root.commands.items():
+        assert command.help, name
+
+
+def test_every_subcommand_carries_help_text() -> None:
+    from sterilot.cli.main import main as root
+
+    missing: list[str] = []
+    for name, command in root.commands.items():
+        if not isinstance(command, click.Group):
+            continue
+        for child, found in command.commands.items():
+            if not found.help:
+                missing.append(f"{name} {child}")
+    assert missing == []
+
+
+def test_the_command_list_is_sorted() -> None:
+    result = CliRunner().invoke(main, ["commands"])
+    names = [line.split()[0] for line in result.output.splitlines() if line.strip()]
+    assert names == sorted(names)

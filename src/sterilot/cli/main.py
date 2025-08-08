@@ -58,7 +58,16 @@ class Cli(click.Group):
             ctx.exit(error.exit_status)
 
 
-@click.group(cls=Cli)
+EPILOG = """
+Exit statuses: 0 fine, 2 bad input, 3 not found, 4 a state conflict,
+5 a rule refused it, 6 the data contradicts itself, 7 a setup problem.
+
+The database is $STERILOT_DB or ./sterilot.sqlite3, and the badge signing what
+a command writes is --badge or $STERILOT_BADGE.
+"""
+
+
+@click.group(cls=Cli, epilog=EPILOG)
 @click.option(
     "--db",
     "db_path",
@@ -143,6 +152,19 @@ def doctor(context: Context, on_day: str | None) -> None:
 def board(context: Context) -> None:
     """Where the work is right now."""
     click.echo(build_board(context.store, context.now(), context.settings).render())
+
+
+@main.command()
+@click.pass_context
+def commands(ctx: click.Context) -> None:
+    """Every command group and what it is for."""
+    root = ctx.find_root().command
+    assert isinstance(root, click.Group)
+    width = max(len(name) for name in root.commands)
+    for name in sorted(root.commands):
+        found = root.commands[name]
+        summary = (found.help or "").strip().splitlines()[0] if found.help else ""
+        click.echo(f"{name.ljust(width)}  {summary}")
 
 
 @main.command(name="where")
