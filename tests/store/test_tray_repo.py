@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 import pytest
 
@@ -152,4 +152,56 @@ def test_a_tray_reaching_the_same_stage_twice_in_a_second_keeps_both_events() ->
     assert found.stage is Stage.STERILE
     assert len(found.history) == 9
     assert len(found.events_in(Stage.STERILE)) == 2
+    trays.db.close()
+
+
+def full_loop(item: TrayInstance, at: datetime) -> TrayInstance:
+    for offset, stage in enumerate(
+        (
+            Stage.DECONTAMINATION,
+            Stage.CLEAN,
+            Stage.ASSEMBLED,
+            Stage.STERILIZING,
+            Stage.COOLING,
+            Stage.STERILE,
+        ),
+        start=1,
+    ):
+        item = item.moved_to(stage, at + timedelta(hours=offset), "T-4471")
+    return item
+
+
+def test_a_completed_loop_is_one_turnaround() -> None:
+    trays = store()
+    trays.save(full_loop(tray(), START))
+    found = trays.turnarounds(date(2024, 11, 1), date(2024, 12, 1))
+    assert len(found) == 1
+    assert found[0].asset == "ORT-0114"
+    assert found[0].elapsed.hours == pytest.approx(6.0)
+    trays.db.close()
+
+
+def test_a_tray_still_in_the_loop_gives_nothing() -> None:
+    trays = store()
+    trays.save(moved(tray(), Stage.DECONTAMINATION, Stage.CLEAN))
+    assert trays.turnarounds(date(2024, 11, 1), date(2024, 12, 1)) == ()
+    trays.db.close()
+
+
+def test_two_trips_give_two_turnarounds() -> None:
+    trays = store()
+    item = full_loop(tray(), START)
+    item = item.moved_to(Stage.ISSUED, START + timedelta(hours=7), "T-4471")
+    item = item.moved_to(Stage.SOILED, START + timedelta(hours=8), "T-4471")
+    item = full_loop(item, START + timedelta(hours=8))
+    trays.save(item)
+    found = trays.turnarounds(date(2024, 11, 1), date(2024, 12, 1))
+    assert len(found) == 2
+    trays.db.close()
+
+
+def test_a_turnaround_outside_the_window_is_left_out() -> None:
+    trays = store()
+    trays.save(full_loop(tray(), START))
+    assert trays.turnarounds(date(2023, 1, 1), date(2023, 2, 1)) == ()
     trays.db.close()

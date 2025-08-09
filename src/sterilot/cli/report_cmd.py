@@ -11,7 +11,13 @@ import click
 
 from sterilot.cli.context import Context
 from sterilot.clock import parse_day
-from sterilot.quality.metrics import first_pass_yield, held_loads, rework_rate, throughput
+from sterilot.quality.metrics import (
+    first_pass_yield,
+    held_loads,
+    rework_rate,
+    throughput,
+    turnaround_hours,
+)
 from sterilot.reporting import daily
 from sterilot.reporting.render import Column, heading, pairs, table
 
@@ -97,6 +103,48 @@ def quality_report(context: Context, start: str, end: str) -> None:
                 ],
             )
         )
+
+
+@report.command("turnaround")
+@click.option("--from", "start", required=True)
+@click.option("--to", "end", required=True)
+@click.option("--worst", type=int, default=5, show_default=True, help="how many slow trays to list")
+@click.pass_obj
+def turnaround_report(context: Context, start: str, end: str, worst: int) -> None:
+    """How long a tray takes to go round, with the tail shown."""
+    runs = context.store.trays.turnarounds(parse_day(start), parse_day(end))
+    if not runs:
+        click.echo("no completed turnarounds in that window")
+        return
+    found = turnaround_hours(runs)
+    click.echo(heading("Turnaround in hours", "-"))
+    click.echo(
+        pairs(
+            [
+                ("trips", found.count),
+                ("mean", f"{found.mean:.1f}"),
+                ("median", f"{found.median:.1f}"),
+                ("ninetieth", f"{found.p90:.1f}"),
+                ("worst", f"{found.highest:.1f}"),
+            ]
+        )
+    )
+    slowest = sorted(runs, key=lambda run: run.elapsed.seconds, reverse=True)[:worst]
+    click.echo()
+    click.echo(
+        table(
+            [Column("tray"), Column("soiled"), Column("sterile"), Column("hours", align="right")],
+            [
+                [
+                    run.asset,
+                    run.soiled_at.strftime("%Y-%m-%d %H:%M"),
+                    run.sterile_at.strftime("%Y-%m-%d %H:%M"),
+                    f"{run.elapsed.hours:.1f}",
+                ]
+                for run in slowest
+            ],
+        )
+    )
 
 
 @report.command("machines")

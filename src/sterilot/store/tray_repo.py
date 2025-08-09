@@ -14,12 +14,13 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 from sterilot.assets.lifecycle import Stage, TrayEvent
 from sterilot.assets.tray import Ownership, TrayInstance
 from sterilot.errors import NotFoundError
 from sterilot.ids import asset_tag, tray_code
+from sterilot.quality.metrics import Turnaround
 from sterilot.store import rows
 from sterilot.store.db import Database
 
@@ -134,6 +135,32 @@ class TrayStore:
                 [rows.put_date(on_or_before)],
             )
         return tuple(self._build(row) for row in found)
+
+    def turnarounds(self, start: date, end: date) -> tuple[Turnaround, ...]:
+        """Every completed trip round the loop that finished in the window.
+
+        A trip is a soiled event and the next sterile event after it. A tray
+        that went round twice in the window gives two, and one still in the
+        middle of a trip gives none.
+        """
+        found: list[Turnaround] = []
+        first, last = rows.day_window(start)[0], rows.day_window(end)[0]
+        for row in self.db.query("SELECT asset FROM tray ORDER BY asset"):
+            asset = str(row["asset"])
+            soiled: datetime | None = None
+            for event in self.db.query(
+                "SELECT at, stage FROM tray_event WHERE asset = ? ORDER BY seq", [asset]
+            ):
+                stage = rows.get_enum(event, "stage", Stage)
+                moment = rows.get_moment(event, "at")
+                if stage is Stage.SOILED:
+                    soiled = moment
+                elif stage is Stage.STERILE and soiled is not None:
+                    stamp = moment.isoformat(timespec="seconds")
+                    if first <= stamp < last:
+                        found.append(Turnaround(asset, soiled, moment))
+                    soiled = None
+        return tuple(found)
 
     def counts_by_stage(self) -> dict[Stage, int]:
         found = self.db.query(

@@ -119,3 +119,17 @@ def test_a_machine_with_nothing_logged_says_none(db: str) -> None:
     add_sterilizer(db)
     result = invoke(db, "report", "machines", "--on", "2025-02-14")
     assert "none" in result.output
+
+
+def test_turnaround_says_when_there_is_nothing(db: str) -> None:
+    result = invoke(db, "report", "turnaround", "--from", "2025-02-01", "--to", "2025-03-01")
+    assert result.exit_code == 0
+    assert "no completed turnarounds" in result.output
+
+
+def test_turnaround_reports_the_tail(busy: str) -> None:
+    result = invoke(busy, "report", "turnaround", "--from", "2020-01-01", "--to", "2030-01-01")
+    assert result.exit_code == 0
+    assert "Turnaround in hours" in result.output
+    assert "ninetieth" in result.output
+    assert "ORT-0114" in result.output
