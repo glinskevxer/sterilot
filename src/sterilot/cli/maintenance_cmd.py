@@ -52,7 +52,7 @@ def add(
 @click.pass_obj
 def done(context: Context, equipment: str, code: str, on_day: str | None) -> None:
     """Record a job as done."""
-    day = parse_day(on_day) if on_day else context.clock.today()
+    day = context.day(on_day)
     task = context.store.maintenance.done(equipment, code, day)
     due = task.due_on()
     click.echo(f"{task.code} done {day.isoformat()}" + (f", next {due.isoformat()}" if due else ""))
@@ -78,7 +78,7 @@ def ran(context: Context, equipment: str) -> None:
 @click.pass_obj
 def due(context: Context, on_day: str | None, within: int) -> None:
     """Everything due, and optionally what is coming."""
-    day = parse_day(on_day) if on_day else context.clock.today()
+    day = context.day(on_day)
     found = context.store.maintenance.due(day)
     click.echo(
         table(

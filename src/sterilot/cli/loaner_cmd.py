@@ -13,7 +13,7 @@ import click
 
 from sterilot.assets.loaner import LoanerSet
 from sterilot.cli.context import Context
-from sterilot.clock import parse_day, parse_moment
+from sterilot.clock import parse_moment
 from sterilot.reporting.render import Column, bullets, pairs, table
 
 
@@ -129,7 +129,7 @@ def show(context: Context, reference: str) -> None:
 @click.pass_obj
 def due(context: Context, on_day: str | None) -> None:
     """The loaners for a day's cases that are not ready."""
-    day = parse_day(on_day) if on_day else context.clock.today()
+    day = context.day(on_day)
     found = context.store.loaners.not_ready(day, context.settings.loaner_lead_hours)
     if not found:
         click.echo("every loaner for that day is ready")

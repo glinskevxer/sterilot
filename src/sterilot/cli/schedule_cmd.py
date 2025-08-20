@@ -118,7 +118,7 @@ def import_list(context: Context, path: Path, dry_run: bool) -> None:
 @click.pass_obj
 def day(context: Context, on_day: str | None) -> None:
     """The list for a day, room by room."""
-    wanted = parse_day(on_day) if on_day else context.clock.today()
+    wanted = context.day(on_day)
     found = context.store.schedule.schedule(wanted)
     click.echo(
         table(
@@ -158,7 +158,7 @@ def day(context: Context, on_day: str | None) -> None:
 @click.pass_obj
 def demand(context: Context, on_day: str | None) -> None:
     """What the day's list calls for, against what is on the shelf."""
-    wanted = parse_day(on_day) if on_day else context.clock.today()
+    wanted = context.day(on_day)
     found = context.store.schedule.schedule(wanted)
     needed = found.demand(context.store.schedule.cards(), wanted)
     on_hand = context.store.packages.on_hand(context.now(), context.settings)

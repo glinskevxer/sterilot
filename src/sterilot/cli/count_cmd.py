@@ -15,7 +15,6 @@ import click
 from sterilot.catalog.count import count_tray
 from sterilot.cli import values
 from sterilot.cli.context import Context
-from sterilot.clock import parse_day
 from sterilot.quality.audit import Action
 from sterilot.quality.nonconformance import Category, Nonconformance, Severity
 from sterilot.reporting.render import Column, bullets, pairs, table
@@ -42,7 +41,7 @@ def tray(
     reference: str,
 ) -> None:
     """Reconcile a counted tray against its sheet."""
-    day = parse_day(on_day) if on_day else context.clock.today()
+    day = context.day(on_day)
     sheet = context.store.catalog.sheet(code, day)
     approvals = context.store.catalog.substitutions()
     result = count_tray(sheet, values.tally(items), approvals, day)
@@ -77,7 +76,7 @@ def tray(
 @click.pass_obj
 def show_sheet(context: Context, code: str, on_day: str | None) -> None:
     """What the bench should be counting."""
-    day = parse_day(on_day) if on_day else context.clock.today()
+    day = context.day(on_day)
     sheet = context.store.catalog.sheet(code, day)
     click.echo(
         pairs(

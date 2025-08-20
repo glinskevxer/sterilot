@@ -157,7 +157,7 @@ def substitute(
 @click.pass_obj
 def substitutions(context: Context, on_day: str | None) -> None:
     """Every approval in force on a day."""
-    day = parse_day(on_day) if on_day else context.clock.today()
+    day = context.day(on_day)
     found = context.store.catalog.substitutions().active(day)
     click.echo(
         table(
@@ -177,7 +177,7 @@ def substitutions(context: Context, on_day: str | None) -> None:
 @click.pass_obj
 def check(context: Context, on_day: str | None) -> None:
     """Every inconsistency between the catalog, the sheets and the approvals."""
-    day = parse_day(on_day) if on_day else context.clock.today()
+    day = context.day(on_day)
     problems: list[str] = []
     for code in context.store.catalog.set_codes():
         try:

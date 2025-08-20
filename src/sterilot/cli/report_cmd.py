@@ -32,7 +32,7 @@ def report() -> None:
 @click.pass_obj
 def daily_report(context: Context, on_day: str | None) -> None:
     """The one page daily sheet."""
-    day = parse_day(on_day) if on_day else context.clock.today()
+    day = context.day(on_day)
     click.echo(daily.build(context.store, day, context.settings).render())
 
 
@@ -152,7 +152,7 @@ def turnaround_report(context: Context, start: str, end: str, worst: int) -> Non
 @click.pass_obj
 def machines_report(context: Context, on_day: str | None) -> None:
     """Every machine, what it ran and what it owes."""
-    day = parse_day(on_day) if on_day else context.clock.today()
+    day = context.day(on_day)
     rows: list[list[object]] = []
     for unit in context.store.equipment.sterilizers():
         ran = context.store.cycles.on_day(unit.equipment, day)

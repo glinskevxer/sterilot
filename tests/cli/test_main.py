@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import os
+from datetime import date, datetime
 from pathlib import Path
 
 import click
+import pytest
 from click.testing import CliRunner, Result
 
 from sterilot import __version__
 from sterilot.cli.context import BADGE_ENV, DB_ENV, Context, default_badge, default_db_path
 from sterilot.cli.main import main
-from sterilot.errors import ConfigurationError
+from sterilot.clock import Clock
+from sterilot.errors import ConfigurationError, ValidationError
 from sterilot.store.db import Database
 from sterilot.store.migrations import latest_version
 
@@ -246,3 +249,23 @@ def test_the_command_list_is_sorted() -> None:
     result = CliRunner().invoke(main, ["commands"])
     names = [line.split()[0] for line in result.output.splitlines() if line.strip()]
     assert names == sorted(names)
+
+
+def test_the_context_day_falls_back_to_the_processing_day(tmp_path: Path) -> None:
+    context = Context.build(
+        tmp_path / "sterilot.sqlite3", clock=Clock(fixed=datetime(2025, 8, 12, 2, 0))
+    )
+    try:
+        assert context.day() == date(2025, 8, 11)
+        assert context.day("2025-08-20") == date(2025, 8, 20)
+    finally:
+        context.close()
+
+
+def test_the_context_day_refuses_nonsense(tmp_path: Path) -> None:
+    context = Context.build(tmp_path / "sterilot.sqlite3")
+    try:
+        with pytest.raises(ValidationError):
+            context.day("last tuesday")
+    finally:
+        context.close()

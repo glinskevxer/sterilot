@@ -13,7 +13,7 @@ from pathlib import Path
 import click
 
 from sterilot.cli.context import Context
-from sterilot.clock import parse_day, parse_moment
+from sterilot.clock import parse_moment
 from sterilot.ids import LotControlNumber
 from sterilot.ingest.printout import parse_printout
 from sterilot.ingest.trace_import import load_trace
@@ -181,7 +181,7 @@ def trace(context: Context, path: Path, floor: float) -> None:
 @click.pass_obj
 def day(context: Context, equipment: str, on_day: str | None) -> None:
     """Every cycle a chamber ran on a day."""
-    wanted = parse_day(on_day) if on_day else context.clock.today()
+    wanted = context.day(on_day)
     found = context.store.cycles.on_day(equipment, wanted)
     click.echo(
         table(

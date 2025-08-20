@@ -10,10 +10,10 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
-from sterilot.clock import Clock
+from sterilot.clock import Clock, parse_day
 from sterilot.errors import ConfigurationError
 from sterilot.ids import badge_number
 from sterilot.settings import Settings
@@ -67,6 +67,16 @@ class Context:
 
     def now(self) -> datetime:
         return self.clock.now()
+
+    def day(self, given: str | None = None) -> date:
+        """The day a command is about: the one given, or today.
+
+        Nearly every command takes an optional ``--on``, and thirteen of them
+        were writing the same conditional. Today here means the processing day,
+        so a command run at two in the morning belongs to the shift that is
+        still on the floor rather than to the date on the wall.
+        """
+        return parse_day(given) if given else self.clock.today()
 
     def close(self) -> None:
         self.store.close()

@@ -9,7 +9,7 @@ from __future__ import annotations
 import click
 
 from sterilot.cli.context import Context
-from sterilot.clock import parse_day, parse_moment
+from sterilot.clock import parse_moment
 from sterilot.decon.verification import Verification, VerificationKind
 from sterilot.reporting.render import Column, bullets, table
 
@@ -66,7 +66,7 @@ def residue(context: Context, equipment: str, kind_name: str, value: float, subj
 @click.pass_obj
 def day(context: Context, equipment: str, on_day: str | None) -> None:
     """Everything recorded for a machine on a day."""
-    wanted = parse_day(on_day) if on_day else context.clock.today()
+    wanted = context.day(on_day)
     found = context.store.verifications.on_day(equipment, wanted)
     click.echo(
         table(

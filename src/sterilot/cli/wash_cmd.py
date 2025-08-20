@@ -13,7 +13,7 @@ import click
 
 from sterilot.cli import values
 from sterilot.cli.context import Context
-from sterilot.clock import parse_day, parse_moment
+from sterilot.clock import parse_moment
 from sterilot.decon.a0 import ROUTINE_FLOOR, evaluate
 from sterilot.decon.cycle import Phase, PhaseRecord, WasherCycle
 from sterilot.ingest.washer_export import load_washer_cycles
@@ -123,7 +123,7 @@ def check(context: Context, equipment: str, number: int, started: str) -> None:
 @click.pass_obj
 def day(context: Context, equipment: str, on_day: str | None) -> None:
     """Every wash cycle a machine ran on a day."""
-    wanted = parse_day(on_day) if on_day else context.clock.today()
+    wanted = context.day(on_day)
     found = context.store.washers.on_day(equipment, wanted)
     click.echo(
         table(

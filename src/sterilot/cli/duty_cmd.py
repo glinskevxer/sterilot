@@ -32,7 +32,7 @@ def log(
     context: Context, equipment: str, duty_name: str, on_day: str | None, failed: bool, note: str
 ) -> None:
     """Record one daily test."""
-    day = parse_day(on_day) if on_day else context.clock.today()
+    day = context.day(on_day)
     entry = LogEntry(
         day=day,
         equipment=equipment,
@@ -51,7 +51,7 @@ def log(
 @click.pass_obj
 def day(context: Context, equipment: str, on_day: str | None) -> None:
     """What has been logged for a machine on a day, and what is still owed."""
-    wanted = parse_day(on_day) if on_day else context.clock.today()
+    wanted = context.day(on_day)
     kind = context.store.equipment.kind_of(equipment)
     if kind == "sterilizer":
         owed = duties_for_sterilizer(context.store.equipment.sterilizer(equipment))

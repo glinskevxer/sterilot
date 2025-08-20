@@ -10,7 +10,7 @@ from __future__ import annotations
 import click
 
 from sterilot.cli.context import Context
-from sterilot.clock import parse_day, parse_moment
+from sterilot.clock import parse_moment
 from sterilot.decon.manual import ManualClean, PointOfUse
 from sterilot.errors import NotFoundError
 from sterilot.reporting.render import Column, bullets, table
@@ -109,7 +109,7 @@ def sink(
 @click.pass_obj
 def day(context: Context, on_day: str | None) -> None:
     """Every set that came back today, and how the trip went."""
-    wanted = parse_day(on_day) if on_day else context.clock.today()
+    wanted = context.day(on_day)
     found = context.store.decon.trips_on(wanted)
     click.echo(
         table(
