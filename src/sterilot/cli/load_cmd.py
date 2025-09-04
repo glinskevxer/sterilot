@@ -7,12 +7,15 @@ because of a default nobody typed is a release nobody can explain afterwards.
 
 from __future__ import annotations
 
+from datetime import date
+
 import click
 
 from sterilot.assets.lifecycle import Stage, allowed_from
 from sterilot.cli import values
 from sterilot.cli.context import Context
 from sterilot.clock import parse_day
+from sterilot.errors import NotFoundError
 from sterilot.indicators.chemical import (
     ChemicalIndicator,
     ChemicalResult,
@@ -24,6 +27,7 @@ from sterilot.load.build import Load, LoadItem
 from sterilot.load.record import LoadRecord, LoadStatus
 from sterilot.load.release import BiologicalOutcome, ReleaseRequest, decide
 from sterilot.reporting.render import Column, bullets, pairs, table
+from sterilot.units.mass import Mass
 
 
 @click.group()
@@ -61,6 +65,7 @@ def build(
             LoadItem(
                 asset=tray.asset,
                 code=tray.code,
+                weight=_sheet_weight(context, tray.code, cycle.day),
                 implant=tray.asset in implant_set,
                 textile=tray.asset in textile_set,
                 shelf=2 if tray.asset in textile_set else 1,
@@ -210,6 +215,22 @@ def of_tray(context: Context, asset: str) -> None:
             ],
         )
     )
+
+
+def _sheet_weight(context: Context, code: str, day: date) -> Mass | None:
+    """What the count sheet says a set weighs, or nothing when we cannot say.
+
+    A weight is only useful if it is complete. A sheet with one unweighed item
+    on it would put the whole set under the limit by however much that item
+    weighs, which is worse than admitting we do not know.
+    """
+    try:
+        sheet = context.store.catalog.sheet(code, day)
+    except NotFoundError:
+        return None
+    if sheet.weights_missing():
+        return None
+    return sheet.known_weight()
 
 
 def _to_the_shelf(context: Context, record: LoadRecord) -> None:

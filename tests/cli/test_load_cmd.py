@@ -217,3 +217,93 @@ def test_a_rejected_load_leaves_its_trays_in_the_chamber(ready: str) -> None:
     release(ready, "--wet")
     shown = invoke(ready, "tray", "show", "ORT-0114", "--no-history")
     assert "sterilizing" in shown.output
+
+
+def with_sheet(db: str, grams: int) -> None:
+    invoke(
+        db,
+        "catalog",
+        "add",
+        "SU-1234",
+        "kelly forceps",
+        "--manufacturer",
+        "V Mueller",
+        "--complexity",
+        "hinged",
+        "--grams",
+        str(grams),
+    )
+    invoke(
+        db,
+        "sheet",
+        "define",
+        "ORT-MAJOR",
+        "orthopaedic major set",
+        "--line",
+        "SU-1234=4",
+        "--from",
+        "2025-01-01",
+    )
+
+
+def test_a_load_takes_its_weight_from_the_count_sheet(ready: str) -> None:
+    with_sheet(ready, 3000)
+    result = build(ready)
+    assert result.exit_code == 0
+    assert "over the set weight limit" in result.output
+
+
+def test_a_set_inside_the_limit_says_nothing(ready: str) -> None:
+    with_sheet(ready, 500)
+    result = build(ready)
+    assert result.exit_code == 0
+    assert "weight" not in result.output
+
+
+def test_a_sheet_with_a_missing_weight_is_not_guessed_at(ready: str) -> None:
+    invoke(
+        ready,
+        "catalog",
+        "add",
+        "SU-1234",
+        "kelly forceps",
+        "--manufacturer",
+        "V Mueller",
+        "--complexity",
+        "hinged",
+        "--grams",
+        "3000",
+    )
+    invoke(
+        ready,
+        "catalog",
+        "add",
+        "SU-1235",
+        "kocher forceps",
+        "--manufacturer",
+        "V Mueller",
+        "--complexity",
+        "hinged",
+    )
+    invoke(
+        ready,
+        "sheet",
+        "define",
+        "ORT-MAJOR",
+        "orthopaedic major set",
+        "--line",
+        "SU-1234=4",
+        "--line",
+        "SU-1235=1",
+        "--from",
+        "2025-01-01",
+    )
+    result = build(ready)
+    assert result.exit_code == 0
+    assert "over the set weight limit" not in result.output
+
+
+def test_a_set_with_no_sheet_at_all_still_builds(ready: str) -> None:
+    result = build(ready)
+    assert result.exit_code == 0
+    assert "built LD-1" in result.output

@@ -12,7 +12,7 @@ line is something to do rather than something to know.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 
 from sterilot.clock import Shift, processing_day, shift_at
 from sterilot.load.record import LoadRecord, LoadStatus
@@ -48,7 +48,7 @@ class Handover:
     loaners_not_ready: int
 
     @property
-    def day(self) -> object:
+    def day(self) -> date:
         return processing_day(self.at)
 
     @property
