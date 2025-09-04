@@ -133,3 +133,14 @@ def test_turnaround_reports_the_tail(busy: str) -> None:
     assert "Turnaround in hours" in result.output
     assert "ninetieth" in result.output
     assert "ORT-0114" in result.output
+
+
+def test_the_handover_prints(busy: str) -> None:
+    result = invoke(busy, "report", "handover")
+    assert result.exit_code == 0
+    assert "handover" in result.output
+
+
+def test_a_quiet_handover_says_so(db: str) -> None:
+    result = invoke(db, "report", "handover")
+    assert "nothing outstanding" in result.output

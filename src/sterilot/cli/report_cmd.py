@@ -18,7 +18,7 @@ from sterilot.quality.metrics import (
     throughput,
     turnaround_hours,
 )
-from sterilot.reporting import daily
+from sterilot.reporting import daily, handover
 from sterilot.reporting.render import Column, heading, pairs, table
 
 
@@ -145,6 +145,13 @@ def turnaround_report(context: Context, start: str, end: str, worst: int) -> Non
             ],
         )
     )
+
+
+@report.command("handover")
+@click.pass_obj
+def handover_report(context: Context) -> None:
+    """What this shift leaves the next one."""
+    click.echo(handover.build(context.store, context.now(), context.settings).render())
 
 
 @report.command("machines")
