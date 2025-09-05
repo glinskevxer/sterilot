@@ -16,6 +16,27 @@ from sterilot.errors import ConfigurationError, ValidationError
 
 DEFAULT_FILENAME = "sterilot.toml"
 
+NOTES = {
+    "facility": "the name that goes at the top of every report",
+    "set_weight_limit_kg": "a set over this will not dry, container and contents together",
+    "shelf_life_days": "leave this out for event related sterility, which is the default",
+    "bi_incubation_hours": "how long a biological sits before anybody may read it",
+    "implant_hold_required": "hold an implant load until its biological is read",
+    "emergency_release_allowed": "allow a documented early release on a held load",
+    "loaner_lead_hours": "how far ahead of a case a vendor set has to arrive",
+    "wet_pack_rejects_load": "a wet load is rejected rather than dried and released",
+    "max_daily_runs": "the highest run number a lot control number may carry in a day",
+    "cooling_minutes": "how long a load cools before anybody touches it",
+}
+
+
+def _toml_value(value: Any) -> str:
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, str):
+        return f"'{value}'"
+    return str(value)
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -94,3 +115,23 @@ class Settings:
 
     def describe(self) -> dict[str, Any]:
         return {field: getattr(self, field) for field in self.__dataclass_fields__}
+
+    def to_toml(self) -> str:
+        """The current settings as a file a supervisor can edit.
+
+        Written out with the note beside each value rather than a bare table,
+        because a number nobody can explain gets changed by whoever is on shift
+        when it first gets in the way.
+        """
+        lines = ["[sterilot]"]
+        for field in self.__dataclass_fields__:
+            note = NOTES.get(field)
+            if note:
+                lines.append(f"# {note}")
+            value = getattr(self, field)
+            if value is None:
+                lines.append(f"# {field} is not set")
+            else:
+                lines.append(f"{field} = {_toml_value(value)}")
+            lines.append("")
+        return "\n".join(lines).rstrip() + "\n"

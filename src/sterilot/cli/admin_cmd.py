@@ -122,7 +122,21 @@ def checkpoint(context: Context) -> None:
 
 
 @admin.command("settings")
+@click.option(
+    "--write",
+    "target",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="write the current settings out as a file to edit",
+)
+@click.option("--overwrite", is_flag=True)
 @click.pass_obj
-def settings(context: Context) -> None:
+def settings(context: Context, target: Path | None, overwrite: bool) -> None:
     """Every department number this build is running on."""
-    click.echo(pairs(sorted(context.settings.describe().items())))
+    if target is None:
+        click.echo(pairs(sorted(context.settings.describe().items())))
+        return
+    if target.exists() and not overwrite:
+        raise ConflictError("that file is already there", path=str(target))
+    target.write_text(context.settings.to_toml(), encoding="utf-8")
+    click.echo(f"wrote {target}")

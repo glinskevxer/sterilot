@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from click.testing import CliRunner
+
+from sterilot.cli.main import main
 from sterilot.store.db import Database
 from sterilot.store.migrations import MIGRATIONS, latest_version
 from tests.cli.conftest import add_sterilizer, invoke, record_cycle
@@ -119,3 +122,28 @@ def test_a_short_retention_is_refused(db: str) -> None:
     result = invoke(db, "admin", "purge", "--years", "1")
     assert result.exit_code == 2
     assert "retention floor" in result.output
+
+
+def test_the_settings_can_be_written_out(db: str, tmp_path: Path) -> None:
+    target = tmp_path / "sterilot.toml"
+    result = invoke(db, "admin", "settings", "--write", str(target))
+    assert result.exit_code == 0
+    assert "wrote" in result.output
+    assert "[sterilot]" in target.read_text(encoding="utf-8")
+
+
+def test_the_written_settings_are_accepted_back(db: str, tmp_path: Path) -> None:
+    target = tmp_path / "sterilot.toml"
+    invoke(db, "admin", "settings", "--write", str(target))
+    result = CliRunner().invoke(main, ["--db", db, "--settings", str(target), "admin", "settings"])
+    assert result.exit_code == 0
+    assert "Central Service" in result.output
+
+
+def test_writing_will_not_overwrite_without_being_told(db: str, tmp_path: Path) -> None:
+    target = tmp_path / "sterilot.toml"
+    invoke(db, "admin", "settings", "--write", str(target))
+    again = invoke(db, "admin", "settings", "--write", str(target))
+    assert again.exit_code == 4
+    forced = invoke(db, "admin", "settings", "--write", str(target), "--overwrite")
+    assert forced.exit_code == 0

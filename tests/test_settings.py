@@ -105,3 +105,35 @@ def test_describe_covers_every_field() -> None:
     described = Settings().describe()
     assert described["facility"] == "Central Service"
     assert set(described) == set(Settings.__dataclass_fields__)
+
+
+def test_the_settings_write_out_as_a_readable_file() -> None:
+    text = Settings().to_toml()
+    assert text.startswith("[sterilot]")
+    assert "facility = 'Central Service'" in text
+    assert "implant_hold_required = true" in text
+    assert "# how long a load cools before anybody touches it" in text
+
+
+def test_an_unset_shelf_life_is_written_out_commented() -> None:
+    assert "# shelf_life_days is not set" in Settings().to_toml()
+    assert "shelf_life_days = 180" in Settings(shelf_life_days=180).to_toml()
+
+
+def test_the_default_settings_round_trip_through_a_file(tmp_path: Path) -> None:
+    path = tmp_path / "sterilot.toml"
+    path.write_text(Settings().to_toml(), encoding="utf-8")
+    assert Settings.load(path) == Settings()
+
+
+def test_the_written_file_reads_back(tmp_path: Path) -> None:
+    settings = Settings(facility="Ridgeway CS", loaner_lead_hours=24, shelf_life_days=180)
+    path = tmp_path / "sterilot.toml"
+    path.write_text(settings.to_toml(), encoding="utf-8")
+    assert Settings.load(path) == settings
+
+
+def test_every_field_carries_a_note() -> None:
+    from sterilot.settings import NOTES
+
+    assert set(NOTES) == set(Settings.__dataclass_fields__)
