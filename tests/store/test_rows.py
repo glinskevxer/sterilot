@@ -159,3 +159,23 @@ def test_a_window_over_two_days_uses_the_same_boundary() -> None:
     assert start == "2025-04-01T00:00:00"
     assert end == "2025-04-08T00:00:00"
     assert start <= "2025-04-07T23:59:59" < end
+
+
+def test_a_date_column_holding_a_number_is_refused() -> None:
+    with pytest.raises(IntegrityError):
+        rows.get_date(row(day=17), "day")
+
+
+def test_a_duration_column_holding_text_is_refused() -> None:
+    with pytest.raises(IntegrityError):
+        rows.get_duration(row(seconds="four"), "seconds")
+
+
+def test_a_mass_column_holding_text_is_refused() -> None:
+    with pytest.raises(IntegrityError):
+        rows.get_mass_or_none(row(weight="heavy"), "weight")
+
+
+def test_an_enum_column_that_is_empty_is_refused() -> None:
+    with pytest.raises(IntegrityError):
+        rows.get_enum(row(method=None), "method", Method)

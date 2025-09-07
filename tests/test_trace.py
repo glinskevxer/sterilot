@@ -129,3 +129,20 @@ def test_window_refuses_an_inverted_range() -> None:
 
 def test_celsius_values_are_plain_floats() -> None:
     assert ramp().celsius_values()[0] == pytest.approx(20.0)
+
+
+def test_reading_at_the_first_and_last_sample() -> None:
+    trace = ramp()
+    assert trace.at(0.0) == Temperature(20.0)
+    assert trace.at(420.0) == Temperature(100.0)
+
+
+def test_a_falling_crossing_is_interpolated_too() -> None:
+    trace = Trace.from_pairs(START, [(0.0, 140.0), (100.0, 100.0)])
+    assert trace.time_above(Temperature(120.0)).seconds == pytest.approx(50.0)
+
+
+def test_a_window_that_covers_the_whole_trace() -> None:
+    window = ramp().window(0.0, 420.0)
+    assert window.duration.seconds == pytest.approx(420.0)
+    assert len(window) == 5

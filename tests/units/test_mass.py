@@ -118,3 +118,16 @@ def test_heaviest_refuses_an_empty_run() -> None:
 def test_ordering() -> None:
     assert Mass(1.0) < Mass(2.0)
     assert sorted([Mass(2.0), Mass(1.0)])[0] == Mass(1.0)
+
+
+def test_a_mass_of_exactly_nothing_is_allowed() -> None:
+    assert Mass(0.0).kilograms == pytest.approx(0.0)
+    assert Mass.zero().format() == "0.00 kg"
+
+
+def test_scaling_by_nothing_gives_nothing() -> None:
+    assert Mass(4.0) * 0 == Mass.zero()
+
+
+def test_a_mass_equal_to_the_limit_is_not_over_it() -> None:
+    assert Mass(SET_WEIGHT_LIMIT_KG).over(set_weight_limit()) == Mass.zero()

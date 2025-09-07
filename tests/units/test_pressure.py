@@ -116,3 +116,24 @@ def test_superheat_is_positive_when_the_chamber_runs_hot_for_its_pressure() -> N
 def test_wet_steam_reads_slightly_negative() -> None:
     reading = superheat(Temperature(133.0), saturation_pressure(Temperature(134.0)))
     assert reading < 0
+
+
+def test_a_vacuum_reads_back_in_every_unit() -> None:
+    reading = Pressure(8.0)
+    assert reading.is_vacuum()
+    assert reading.psig < 0
+    assert reading.mmhg == pytest.approx(60.0, abs=0.1)
+    assert reading.bar == pytest.approx(0.08)
+
+
+def test_zero_absolute_is_allowed_but_has_no_steam_curve() -> None:
+    assert Pressure(0.0).kilopascals == pytest.approx(0.0)
+    with pytest.raises(ValidationError):
+        saturation_temperature(Pressure(0.0))
+
+
+def test_the_saturation_curve_crosses_its_ranges_smoothly() -> None:
+    below = saturation_temperature(saturation_pressure(Temperature(98.0)))
+    above = saturation_temperature(saturation_pressure(Temperature(101.0)))
+    assert below.celsius == pytest.approx(98.0, abs=0.1)
+    assert above.celsius == pytest.approx(101.0, abs=0.1)

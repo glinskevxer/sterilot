@@ -121,3 +121,23 @@ def test_hottest_and_coldest_refuse_an_empty_run() -> None:
         hottest([])
     with pytest.raises(ValidationError):
         coldest([])
+
+
+def test_the_sanity_ceiling_itself_is_allowed() -> None:
+    assert Temperature(400.0).celsius == pytest.approx(400.0)
+
+
+def test_a_reading_just_over_the_ceiling_names_it() -> None:
+    with pytest.raises(ValidationError) as caught:
+        Temperature(400.1)
+    assert caught.value.context["ceiling"] == 400.0
+
+
+def test_offsetting_past_the_ceiling_is_refused() -> None:
+    with pytest.raises(ValidationError):
+        Temperature(390.0).offset_by(20.0)
+
+
+def test_a_tolerance_of_nothing_is_an_exact_match() -> None:
+    assert Temperature(134.0).within(Temperature(134.0), 0.0)
+    assert not Temperature(134.0).within(Temperature(134.1), 0.0)
