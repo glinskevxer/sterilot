@@ -17,6 +17,7 @@ from datetime import date, timedelta
 from sterilot.load.record import LoadStatus
 from sterilot.quality.log import duties_for_sterilizer, duties_for_washer
 from sterilot.quality.nonconformance import Severity
+from sterilot.reporting import coverage
 from sterilot.reporting.render import Column, heading, join, pairs, section, table
 from sterilot.settings import Settings
 from sterilot.store.store import Store
@@ -154,31 +155,30 @@ def build(
 ) -> ComplianceReport:
     """Count a period. ``end`` is exclusive, the way every window here is."""
     rules = settings or Settings()
+    days = _days(start, end)
     machines: list[MachineCoverage] = []
     for unit in store.equipment.sterilizers():
-        owed = duties_for_sterilizer(unit)
-        run = 0
-        covered = 0
-        for day in _days(start, end):
-            if not store.cycles.on_day(unit.equipment, day):
-                continue
-            run += 1
-            if store.duties.covered(unit.equipment, day, owed):
-                covered += 1
-        machines.append(MachineCoverage(unit.equipment, "sterilizer", run, covered))
+        duties = duties_for_sterilizer(unit)
+        machines.append(
+            MachineCoverage(
+                unit.equipment,
+                "sterilizer",
+                coverage.days_run(store, unit.equipment, "sterilizer", days),
+                coverage.days_covered(store, unit.equipment, "sterilizer", duties, days),
+            )
+        )
     for washer in store.equipment.washers():
-        owed = duties_for_washer(washer)
-        if not owed:
+        duties = duties_for_washer(washer)
+        if not duties:
             continue
-        run = 0
-        covered = 0
-        for day in _days(start, end):
-            if not store.washers.on_day(washer.equipment, day):
-                continue
-            run += 1
-            if store.duties.covered(washer.equipment, day, owed):
-                covered += 1
-        machines.append(MachineCoverage(washer.equipment, "washer", run, covered))
+        machines.append(
+            MachineCoverage(
+                washer.equipment,
+                "washer",
+                coverage.days_run(store, washer.equipment, "washer", days),
+                coverage.days_covered(store, washer.equipment, "washer", duties, days),
+            )
+        )
 
     loads: dict[LoadStatus, int] = {}
     for record in store.loads.on_days(start, end):

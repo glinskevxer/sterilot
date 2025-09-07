@@ -16,7 +16,8 @@ from datetime import date, datetime
 
 from sterilot.clock import Shift, processing_day, shift_at
 from sterilot.load.record import LoadRecord, LoadStatus
-from sterilot.quality.log import Duty, duties_for_sterilizer, duties_for_washer
+from sterilot.quality.log import Duty
+from sterilot.reporting import coverage
 from sterilot.reporting.render import Column, bullets, heading, join, pairs, table
 from sterilot.settings import Settings
 from sterilot.store.store import Store
@@ -103,33 +104,14 @@ def build(store: Store, at: datetime, settings: Settings | None = None) -> Hando
     """Read the handover off the store at ``at``."""
     rules = settings or Settings()
     day = processing_day(at)
-    owed: list[Owed] = []
-    for unit in store.equipment.sterilizers():
-        if not store.cycles.on_day(unit.equipment, day):
-            continue
-        logged = {entry.duty for entry in store.duties.on_day(unit.equipment, day) if entry.passed}
-        owed.extend(
-            Owed(unit.equipment, duty)
-            for duty in sorted(duties_for_sterilizer(unit) - logged, key=lambda item: item.value)
-        )
-    for washer in store.equipment.washers():
-        duties = duties_for_washer(washer)
-        if not duties or not store.washers.on_day(washer.equipment, day):
-            continue
-        logged = {
-            entry.duty for entry in store.duties.on_day(washer.equipment, day) if entry.passed
-        }
-        owed.extend(
-            Owed(washer.equipment, duty)
-            for duty in sorted(duties - logged, key=lambda item: item.value)
-        )
+    owed = tuple(Owed(gap.equipment, gap.duty) for gap in coverage.owed(store, day))
     return Handover(
         at=at,
         shift=shift_at(at),
         facility=rules.facility,
         undecided=store.loads.with_status(LoadStatus.PENDING),
         held=store.loads.with_status(LoadStatus.HELD),
-        owed=tuple(owed),
+        owed=owed,
         carts_waiting=len(store.carts.undelivered()),
         trays_out=len(store.issues.open_issues()),
         loaners_not_ready=len(store.loaners.not_ready(day, rules.loaner_lead_hours)),

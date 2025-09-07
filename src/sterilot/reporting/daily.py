@@ -14,8 +14,8 @@ from dataclasses import dataclass
 from datetime import date
 
 from sterilot.load.record import LoadRecord, LoadStatus
-from sterilot.quality.log import duties_for_sterilizer, duties_for_washer
 from sterilot.quality.nonconformance import Nonconformance
+from sterilot.reporting import coverage
 from sterilot.reporting.render import Column, bullets, heading, join, pairs, section, table
 from sterilot.settings import Settings
 from sterilot.sterilizer.cycle import SterilizerCycle
@@ -144,27 +144,9 @@ def build(store: Store, day: date, settings: Settings | None = None) -> DailyRep
     """Assemble the day's report from the store."""
     rules = settings or Settings()
     cycles: list[SterilizerCycle] = []
-    gaps: list[DutyGap] = []
-    # A machine that did not run owes nothing. That is true of a washer as much
-    # as of a chamber, and it was not until the day the report was read on a
-    # morning with no wash cycles that anybody noticed only one of them said so.
     for unit in store.equipment.sterilizers():
-        ran = store.cycles.on_day(unit.equipment, day)
-        cycles.extend(ran)
-        if not ran:
-            continue
-        logged = {entry.duty for entry in store.duties.on_day(unit.equipment, day) if entry.passed}
-        for duty in sorted(duties_for_sterilizer(unit) - logged, key=lambda item: item.value):
-            gaps.append(DutyGap(unit.equipment, duty.label))
-    for washer in store.equipment.washers():
-        owed = duties_for_washer(washer)
-        if not owed or not store.washers.on_day(washer.equipment, day):
-            continue
-        logged = {
-            entry.duty for entry in store.duties.on_day(washer.equipment, day) if entry.passed
-        }
-        for duty in sorted(owed - logged, key=lambda item: item.value):
-            gaps.append(DutyGap(washer.equipment, duty.label))
+        cycles.extend(store.cycles.on_day(unit.equipment, day))
+    gaps = tuple(DutyGap(gap.equipment, gap.duty.label) for gap in coverage.owed(store, day))
 
     tomorrow = date.fromordinal(day.toordinal() + 1)
     loads = store.loads.on_days(day, tomorrow)
@@ -174,7 +156,7 @@ def build(store: Store, day: date, settings: Settings | None = None) -> DailyRep
         facility=rules.facility,
         cycles=tuple(sorted(cycles, key=lambda item: (item.equipment, item.run))),
         loads=loads,
-        gaps=tuple(gaps),
+        gaps=gaps,
         exceptions=exceptions,
         trays_out=len(store.issues.open_issues()),
     )
