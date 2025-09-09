@@ -60,7 +60,7 @@ jobs:
           python -m pip install --disable-pip-version-check -e ".[dev]"
       - name: pytest
         run: |
-          python -m pytest -q --cov=sterilot --cov-report=term-missing --cov-fail-under=90
+          python -m pytest -q --cov=sterilot --cov-report=term-missing --cov-fail-under=95
 
   package:
     runs-on: ubuntu-latest

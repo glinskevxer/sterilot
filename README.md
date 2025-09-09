@@ -90,7 +90,7 @@ Scripts calling sterilot can tell the failures apart without reading text:
 ```
 python -m ruff check . && python -m ruff format --check .
 python -m mypy
-python -m pytest -q --cov=sterilot --cov-fail-under=90
+python -m pytest -q --cov=sterilot --cov-fail-under=95
 ```
 
 The test suite runs the domain, the store and the command line, and one test
