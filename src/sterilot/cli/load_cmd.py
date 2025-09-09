@@ -12,6 +12,7 @@ from datetime import date
 import click
 
 from sterilot.assets.lifecycle import Stage, allowed_from
+from sterilot.assets.tray import TrayInstance
 from sterilot.cli import values
 from sterilot.cli.context import Context
 from sterilot.clock import parse_day
@@ -74,11 +75,12 @@ def build(
     made = Load.of(reference, cycle.method, items, context.signed_by(), context.now())
     record = LoadRecord(made, cycle)
     context.store.loads.save(record)
-    for asset in made.assets():
-        tray = context.store.trays.get(asset)
-        context.store.trays.save(
-            tray.moved_to(Stage.STERILIZING, context.now(), context.signed_by(), made.reference)
+    context.store.trays.save_all(
+        context.store.trays.get(asset).moved_to(
+            Stage.STERILIZING, context.now(), context.signed_by(), made.reference
         )
+        for asset in made.assets()
+    )
     problems = made.problems(context.store.equipment.sterilizer(cycle.equipment).capacity_units)
     click.echo(f"built {made.label()} on {cycle.lot.format()}")
     if problems:
@@ -235,6 +237,7 @@ def _sheet_weight(context: Context, code: str, day: date) -> Mass | None:
 
 def _to_the_shelf(context: Context, record: LoadRecord) -> None:
     """Walk every tray in a released load out of the chamber and onto the shelf."""
+    moved: list[TrayInstance] = []
     for asset in record.load.assets():
         tray = context.store.trays.get(asset)
         for stage in (Stage.COOLING, Stage.STERILE):
@@ -242,4 +245,5 @@ def _to_the_shelf(context: Context, record: LoadRecord) -> None:
                 continue
             if stage in allowed_from(tray.stage):
                 tray = tray.moved_to(stage, context.now(), context.signed_by(), record.reference)
-        context.store.trays.save(tray)
+        moved.append(tray)
+    context.store.trays.save_all(moved)

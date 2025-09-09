@@ -114,11 +114,10 @@ def import_catalog(context: Context, path: Path, apply_changes: bool, dry_run: b
     known = {item.catalog: item for item in context.store.catalog.instruments()}
     result = load_catalog(path.read_text(encoding="utf-8"), known)
     if not dry_run:
-        for item in result.instruments:
-            context.store.catalog.save_instrument(item)
+        wanted = list(result.instruments)
         if apply_changes:
-            for item in result.changes:
-                context.store.catalog.save_instrument(item)
+            wanted.extend(result.changes)
+        context.store.catalog.save_instruments(wanted)
     click.echo(result.summary())
     if result.changes and not apply_changes:
         click.echo()

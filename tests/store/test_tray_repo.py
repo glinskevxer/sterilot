@@ -205,3 +205,26 @@ def test_a_turnaround_outside_the_window_is_left_out() -> None:
     trays.save(full_loop(tray(), START))
     assert trays.turnarounds(date(2023, 1, 1), date(2023, 2, 1)) == ()
     trays.db.close()
+
+
+def test_a_batch_writes_every_tray() -> None:
+    trays = store()
+    assert trays.save_all([tray("ORT-0114"), tray("ORT-0115")]) == 2
+    assert [item.asset for item in trays.of_code("ORT-MAJOR")] == ["ORT-0114", "ORT-0115"]
+    trays.db.close()
+
+
+def test_an_empty_batch_writes_nothing() -> None:
+    trays = store()
+    assert trays.save_all([]) == 0
+    assert trays.of_code("ORT-MAJOR") == ()
+    trays.db.close()
+
+
+def test_a_batch_of_moves_lands_together() -> None:
+    trays = store()
+    first = moved(tray("ORT-0114"), Stage.DECONTAMINATION)
+    second = moved(tray("ORT-0115"), Stage.DECONTAMINATION)
+    trays.save_all([first, second])
+    assert trays.counts_by_stage() == {Stage.DECONTAMINATION: 2}
+    trays.db.close()

@@ -13,6 +13,7 @@ with a natural key silently dropped the second one.
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime
 
@@ -61,6 +62,15 @@ class TrayStore:
                     for number, event in enumerate(tray.history, start=1)
                 ],
             )
+
+    def save_all(self, trays: Iterable[TrayInstance]) -> int:
+        """Write several trays together, for a move that touches a whole load."""
+        written = 0
+        with self.db.transaction():
+            for tray in trays:
+                self.save(tray)
+                written += 1
+        return written
 
     def get(self, asset: str) -> TrayInstance:
         wanted = asset_tag(asset)

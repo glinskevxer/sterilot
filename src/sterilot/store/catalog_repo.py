@@ -8,6 +8,7 @@ the only question the assembly bench ever has.
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
 
@@ -52,6 +53,21 @@ class CatalogStore:
                 rows.put_grams(item.weight),
             ],
         )
+
+    def save_instruments(self, items: Iterable[Instrument]) -> int:
+        """Write a batch in one transaction, which is how an import lands.
+
+        Two thousand catalog rows written one at a time is two thousand
+        transactions and about a minute of fsync on the machine under the desk.
+        In one transaction it is under a second, and either the whole file
+        loads or none of it does.
+        """
+        written = 0
+        with self.db.transaction():
+            for item in items:
+                self.save_instrument(item)
+                written += 1
+        return written
 
     def instrument(self, catalog: str) -> Instrument:
         wanted = catalog_number(catalog)

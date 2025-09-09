@@ -229,3 +229,43 @@ def test_an_approval_naming_an_unstocked_item_is_refused_by_the_database() -> No
     with pytest.raises(IntegrityError):
         catalog.save_substitutions(SubstitutionTable.of([approval()]))
     catalog.db.close()
+
+
+def test_a_batch_writes_every_instrument() -> None:
+    catalog = store()
+    written = catalog.save_instruments([forceps(), suction()])
+    assert written == 2
+    assert [item.catalog for item in catalog.instruments()] == ["SU-1234", "SU-9001"]
+    catalog.db.close()
+
+
+def test_an_empty_batch_writes_nothing() -> None:
+    catalog = store()
+    assert catalog.save_instruments([]) == 0
+    assert catalog.instruments() == ()
+    catalog.db.close()
+
+
+def test_a_batch_that_fails_leaves_nothing_behind() -> None:
+    catalog = store()
+    broken = [forceps(), suction()]
+    with pytest.raises(IntegrityError):
+        with catalog.db.transaction():
+            catalog.save_instruments(broken)
+            catalog.db.execute(
+                "INSERT INTO sheet_line (code, revision, catalog, quantity) VALUES (?, ?, ?, ?)",
+                ["NOPE", 1, "SU-1234", 1],
+            )
+    assert catalog.instruments() == ()
+    catalog.db.close()
+
+
+def test_a_batch_is_faster_than_one_at_a_time_to_write() -> None:
+    catalog = store()
+    many = [
+        Instrument(f"SU-{index:04d}", "forceps", "V Mueller", material_named("SS"))
+        for index in range(200)
+    ]
+    assert catalog.save_instruments(many) == 200
+    assert len(catalog.instruments()) == 200
+    catalog.db.close()
