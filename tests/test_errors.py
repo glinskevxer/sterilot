@@ -10,6 +10,7 @@ from sterilot.errors import (
     PolicyError,
     SterilotError,
     ValidationError,
+    meaning,
     refuse,
     require,
 )
@@ -96,3 +97,29 @@ def test_refuse_always_raises() -> None:
         refuse("implant load held for the biological", load="A-2201")
     assert caught.value.message == "implant load held for the biological"
     assert caught.value.exit_status == 5
+
+
+def test_every_code_has_a_meaning() -> None:
+    for cls in (
+        SterilotError,
+        ValidationError,
+        NotFoundError,
+        ConflictError,
+        PolicyError,
+        IntegrityError,
+        ConfigurationError,
+    ):
+        assert meaning(cls("x"))
+
+
+def test_the_meanings_read_like_the_help_text() -> None:
+    assert meaning(PolicyError("x")) == "a rule refused it"
+    assert meaning(NotFoundError("x")) == "not found"
+    assert meaning(ValidationError("x")) == "bad input"
+
+
+def test_an_unknown_code_falls_back_to_something_readable() -> None:
+    class OddError(SterilotError):
+        code = "something_new"
+
+    assert meaning(OddError("x")) == "something went wrong"

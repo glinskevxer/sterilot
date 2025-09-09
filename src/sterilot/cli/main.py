@@ -40,20 +40,30 @@ from sterilot.cli.staff_cmd import staff
 from sterilot.cli.tray_cmd import tray
 from sterilot.cli.verify_cmd import verify
 from sterilot.cli.wash_cmd import wash
-from sterilot.errors import SterilotError
+from sterilot.errors import SterilotError, meaning
 from sterilot.reporting.board import build as build_board
 from sterilot.reporting.doctor import check as check_department
 from sterilot.reporting.render import pairs
 
 
 class Cli(click.Group):
-    """A group that turns our errors into exit statuses."""
+    """A group that turns our errors into exit statuses.
+
+    The message, the context that went with it, and what a script will see, on
+    separate lines. A person reading a terminal at three in the morning should
+    not have to look up what exit five means.
+    """
 
     def invoke(self, ctx: click.Context) -> object:
         try:
             return super().invoke(ctx)
         except SterilotError as error:
-            click.echo(f"sterilot: {error}", err=True)
+            if ctx.params.get("debug"):
+                raise
+            click.echo(f"sterilot: {error.message}", err=True)
+            for key, value in error.context.items():
+                click.echo(f"  {key}: {value}", err=True)
+            click.echo(f"  (exit {error.exit_status}, {meaning(error)})", err=True)
             ctx.exit(error.exit_status)
 
 
@@ -82,6 +92,7 @@ a command writes is --badge or $STERILOT_BADGE.
     help="a settings file to read instead of the defaults",
 )
 @click.option("--badge", default=None, help="the badge signing anything this command writes")
+@click.option("--debug", is_flag=True, help="let an error raise, with its traceback")
 @click.option(
     "--no-migrate",
     is_flag=True,
@@ -94,6 +105,7 @@ def main(
     db_path: Path | None,
     settings_path: Path | None,
     badge: str | None,
+    debug: bool,
     no_migrate: bool,
 ) -> None:
     """Sterile processing records."""

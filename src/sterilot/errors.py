@@ -83,6 +83,22 @@ class ConfigurationError(SterilotError):
     exit_status = 7
 
 
+MEANINGS = {
+    "sterilot_error": "something went wrong",
+    "validation": "bad input",
+    "not_found": "not found",
+    "conflict": "a state conflict",
+    "policy": "a rule refused it",
+    "integrity": "the stored data contradicts itself",
+    "configuration": "a setup problem",
+}
+
+
+def meaning(error: SterilotError) -> str:
+    """The one line explanation that goes with an exit status."""
+    return MEANINGS.get(error.code, MEANINGS["sterilot_error"])
+
+
 def require(condition: bool, message: str, **context: Any) -> None:
     """Raise :class:`ValidationError` when ``condition`` is false."""
     if not condition:

@@ -12,7 +12,7 @@ from sterilot import __version__
 from sterilot.cli.context import BADGE_ENV, DB_ENV, Context, default_badge, default_db_path
 from sterilot.cli.main import main
 from sterilot.clock import Clock
-from sterilot.errors import ConfigurationError, ValidationError
+from sterilot.errors import ConfigurationError, NotFoundError, ValidationError
 from sterilot.store.db import Database
 from sterilot.store.migrations import latest_version
 
@@ -269,3 +269,28 @@ def test_the_context_day_refuses_nonsense(tmp_path: Path) -> None:
             context.day("last tuesday")
     finally:
         context.close()
+
+
+def test_an_error_prints_its_context_and_what_a_script_will_see(tmp_path: Path) -> None:
+    result = run(["catalog", "show", "SU-9999"], tmp_path)
+    assert result.exit_code == 3
+    lines = result.output.strip().splitlines()
+    assert lines[0] == "sterilot: we do not stock that catalog number"
+    assert lines[1].strip() == "catalog: SU-9999"
+    assert lines[-1].strip() == "(exit 3, not found)"
+
+
+def test_an_error_with_no_context_still_names_the_status(tmp_path: Path) -> None:
+    result = run(["catalog", "sheet", "NOPE"], tmp_path)
+    assert result.exit_code == 3
+    assert "(exit 3, not found)" in result.output
+
+
+def test_debug_lets_the_error_out_with_its_traceback(tmp_path: Path) -> None:
+    runner = CliRunner()
+    result = runner.invoke(
+        main,
+        ["--db", str(tmp_path / "sterilot.sqlite3"), "--debug", "catalog", "show", "SU-9999"],
+    )
+    assert result.exit_code == 1
+    assert isinstance(result.exception, NotFoundError)
