@@ -15,7 +15,14 @@ from datetime import date
 
 import pytest
 
-from tests.cli.conftest import add_sterilizer, add_washer, assemble, invoke, record_cycle
+from tests.cli.conftest import (
+    add_sterilizer,
+    add_washer,
+    assemble,
+    invoke,
+    record_cycle,
+    release_load,
+)
 
 DAY = "2025-05-06"
 LOT = "AC-1-20250506-01"
@@ -75,21 +82,7 @@ def department(db: str) -> str:
 
 
 def build_and_release(db: str, reference: str, lot: str, asset: str) -> None:
-    invoke(db, "load", "build", reference, "--lot", lot, "--tray", asset)
-    invoke(
-        db,
-        "load",
-        "release",
-        reference,
-        "--ci-lot",
-        "CI-25E01",
-        "--ci-expires",
-        "2026-12-31",
-        "--external",
-        asset,
-        "--internal",
-        asset,
-    )
+    release_load(db, reference, lot, asset)
 
 
 def test_the_department_runs_a_day_and_then_recalls_it(department: str) -> None:

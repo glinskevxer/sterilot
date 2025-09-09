@@ -4,30 +4,12 @@ from pathlib import Path
 
 import pytest
 
-from tests.cli.conftest import add_sterilizer, assemble, invoke, record_cycle
+from tests.cli.conftest import invoke, working_day
 
 
 @pytest.fixture
 def busy(db: str) -> str:
-    add_sterilizer(db)
-    assemble(db, "ORT-0114")
-    invoke(db, "duty", "log", "AC-1", "air removal", "--on", "2025-06-03")
-    record_cycle(db, "2025-06-03 08:00", run=1)
-    invoke(db, "load", "build", "LD-1", "--lot", "AC-1-20250603-01", "--tray", "ORT-0114")
-    invoke(
-        db,
-        "load",
-        "release",
-        "LD-1",
-        "--ci-lot",
-        "CI-25F01",
-        "--ci-expires",
-        "2026-12-31",
-        "--external",
-        "ORT-0114",
-        "--internal",
-        "ORT-0114",
-    )
+    working_day(db, "2025-06-03", "2025-06-03 08:00")
     invoke(
         db,
         "quality",

@@ -2,32 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from tests.cli.conftest import add_sterilizer, assemble, invoke, record_cycle
+from tests.cli.conftest import add_sterilizer, assemble, invoke, record_cycle, working_day
 
 
 @pytest.fixture
 def busy(db: str) -> str:
-    add_sterilizer(db)
-    assemble(db, "ORT-0114")
-    invoke(db, "duty", "log", "AC-1", "air removal", "--on", "2025-02-14")
-    invoke(db, "duty", "log", "AC-1", "biological", "--on", "2025-02-14")
-    record_cycle(db, "2025-02-14 08:00", run=1)
-    invoke(db, "load", "build", "LD-1", "--lot", "AC-1-20250214-01", "--tray", "ORT-0114")
-    invoke(
-        db,
-        "load",
-        "release",
-        "LD-1",
-        "--ci-lot",
-        "CI-25A01",
-        "--ci-expires",
-        "2026-01-31",
-        "--external",
-        "ORT-0114",
-        "--internal",
-        "ORT-0114",
-    )
-    return db
+    return working_day(db, "2025-02-14", "2025-02-14 08:00")
 
 
 def test_the_daily_report_prints_the_day(busy: str) -> None:

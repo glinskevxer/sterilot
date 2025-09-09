@@ -101,6 +101,38 @@ def db(tmp_path: Path) -> str:
     return str(tmp_path / "sterilot.sqlite3")
 
 
+def release_load(db: str, reference: str, lot: str, asset: str, *extra: str) -> Result:
+    """Release a load with a clean pair of indicator readings on one tray."""
+    invoke(db, "load", "build", reference, "--lot", lot, "--tray", asset)
+    return invoke(
+        db,
+        "load",
+        "release",
+        reference,
+        "--ci-lot",
+        "CI-25E01",
+        "--ci-expires",
+        "2026-12-31",
+        "--external",
+        asset,
+        "--internal",
+        asset,
+        *extra,
+    )
+
+
+def working_day(db: str, day: str, started: str, run: int = 1, asset: str = "ORT-0114") -> str:
+    """A chamber tested, a tray assembled, a cycle run and a load released."""
+    add_sterilizer(db)
+    assemble(db, asset)
+    invoke(db, "duty", "log", "AC-1", "air removal", "--on", day)
+    invoke(db, "duty", "log", "AC-1", "biological", "--on", day)
+    record_cycle(db, started, run=run)
+    lot = f"AC-1-{day.replace('-', '')}-{run:02d}"
+    release_load(db, "LD-1", lot, asset)
+    return db
+
+
 @pytest.fixture
 def ready(db: str) -> str:
     """A chamber, two trays, a cycle and a passing air removal test."""
