@@ -124,3 +124,60 @@ def test_the_handover_prints(busy: str) -> None:
 def test_a_quiet_handover_says_so(db: str) -> None:
     result = invoke(db, "report", "handover")
     assert "nothing outstanding" in result.output
+
+
+def raise_exception(
+    db: str, reference: str, subject: str = "AC-1", severity: str = "minor"
+) -> None:
+    invoke(
+        db,
+        "quality",
+        "raise",
+        reference,
+        "wet pack on unloading",
+        "--category",
+        "sterilization",
+        "--subject",
+        subject,
+        "--severity",
+        severity,
+    )
+
+
+def test_the_exception_report_says_when_there_is_nothing(db: str) -> None:
+    result = invoke(db, "report", "exceptions", "--from", "2025-01-01", "--to", "2025-02-01")
+    assert result.exit_code == 0
+    assert "no exceptions in that window" in result.output
+
+
+def test_the_exception_report_counts_and_lists(db: str) -> None:
+    raise_exception(db, "NC-1")
+    raise_exception(db, "NC-2", severity="major")
+    result = invoke(db, "report", "exceptions", "--from", "2020-01-01", "--to", "2030-01-01")
+    assert result.exit_code == 0
+    assert "raised" in result.output
+    assert "NC-1" in result.output
+    assert "major" in result.output
+    assert "open" in result.output
+
+
+def test_a_closed_exception_shows_as_closed(db: str) -> None:
+    raise_exception(db, "NC-1")
+    invoke(db, "quality", "close", "NC-1")
+    result = invoke(db, "report", "exceptions", "--from", "2020-01-01", "--to", "2030-01-01")
+    assert "closed" in result.output
+    assert "still open" in result.output
+
+
+def test_a_repeated_subject_is_named(db: str) -> None:
+    for index in range(3):
+        raise_exception(db, f"NC-{index}")
+    result = invoke(db, "report", "exceptions", "--from", "2020-01-01", "--to", "2030-01-01")
+    assert "AC-1 came up 3 times" in result.output
+
+
+def test_a_subject_below_the_threshold_is_not_named(db: str) -> None:
+    raise_exception(db, "NC-1")
+    raise_exception(db, "NC-2", subject="AC-2")
+    result = invoke(db, "report", "exceptions", "--from", "2020-01-01", "--to", "2030-01-01")
+    assert "came up" not in result.output

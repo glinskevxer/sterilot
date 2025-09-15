@@ -7,6 +7,8 @@ changes the record is not a report.
 
 from __future__ import annotations
 
+from datetime import date
+
 import click
 
 from sterilot.cli.context import Context
@@ -18,8 +20,9 @@ from sterilot.quality.metrics import (
     throughput,
     turnaround_hours,
 )
+from sterilot.quality.nonconformance import ExceptionRegister, Nonconformance
 from sterilot.reporting import daily, handover
-from sterilot.reporting.render import Column, heading, pairs, table
+from sterilot.reporting.render import Column, bullets, heading, pairs, table
 
 
 @click.group()
@@ -152,6 +155,68 @@ def turnaround_report(context: Context, start: str, end: str, worst: int) -> Non
 def handover_report(context: Context) -> None:
     """What this shift leaves the next one."""
     click.echo(handover.build(context.store, context.now(), context.settings).render())
+
+
+@report.command("exceptions")
+@click.option("--from", "start", required=True)
+@click.option("--to", "end", required=True)
+@click.option("--repeat", type=int, default=3, show_default=True, help="what counts as a repeat")
+@click.pass_obj
+def exceptions_report(context: Context, start: str, end: str, repeat: int) -> None:
+    """Exceptions in a window, by severity, with the repeats named."""
+    first, last = parse_day(start), parse_day(end)
+    found = context.store.quality.exceptions_between(first, last)
+    if not found:
+        click.echo("no exceptions in that window")
+        return
+    click.echo(heading("Exceptions", "-"))
+    click.echo(
+        pairs(
+            [
+                ("raised", len(found)),
+                ("still open", sum(1 for entry in found if entry.open)),
+                ("overdue", sum(1 for entry in found if entry.overdue(last))),
+                ("closed inside the response time", _in_time(found, last)),
+            ]
+        )
+    )
+    click.echo()
+    click.echo(
+        table(
+            [
+                Column("reference"),
+                Column("severity"),
+                Column("category"),
+                Column("subject"),
+                Column("age", align="right"),
+                Column("state"),
+            ],
+            [
+                [
+                    entry.reference,
+                    entry.severity.label,
+                    entry.category.label,
+                    entry.subject,
+                    entry.age_days(last),
+                    "open" if entry.open else "closed",
+                ]
+                for entry in found
+            ],
+        )
+    )
+    register = ExceptionRegister.of(found)
+    repeats = register.repeat_subjects(repeat)
+    if repeats:
+        click.echo()
+        click.echo(bullets(f"{subject} came up {count} times" for subject, count in repeats))
+
+
+def _in_time(found: tuple[Nonconformance, ...], day: date) -> int:
+    return sum(
+        1
+        for entry in found
+        if not entry.open and entry.age_days(day) <= entry.severity.response_days
+    )
 
 
 @report.command("machines")
