@@ -196,3 +196,12 @@ def test_loads_are_found_by_the_day_their_cycle_ran() -> None:
     assert [item.reference for item in found] == ["LD-1"]
     assert len(loads.on_days(DAY, date(2024, 12, 9))) == 2
     loads.db.close()
+
+
+def test_a_chamber_is_found_however_its_name_is_typed() -> None:
+    loads, cycles = stores()
+    cycles.save(cycle(1, DAY, "AC-1"))
+    loads.save(record("LD-1", run=1, equipment="AC-1"))
+    assert [item.reference for item in loads.on_equipment("ac 1")] == ["LD-1"]
+    assert [item.reference for item in loads.on_equipment("ac_1", DAY)] == ["LD-1"]
+    loads.db.close()

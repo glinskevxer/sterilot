@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from sterilot.errors import ConflictError, NotFoundError
-from sterilot.ids import normalise_code, tray_code
+from sterilot.ids import asset_tag, normalise_code, tray_code
 from sterilot.repair.order import RepairBook, RepairOrder, Status
 from sterilot.store import rows
 from sterilot.store.db import Database
@@ -102,7 +102,7 @@ class RepairStore:
     def for_asset(self, asset: str) -> tuple[RepairOrder, ...]:
         found = self.db.query(
             f"SELECT {_COLUMNS} FROM repair_order WHERE asset = ? ORDER BY raised_at",
-            [asset.strip().upper()],
+            [asset_tag(asset)],
         )
         return tuple(self._build(row) for row in found)
 

@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from sterilot.errors import NotFoundError
-from sterilot.ids import LotControlNumber, asset_tag, normalise_code
+from sterilot.ids import LotControlNumber, asset_tag, equipment_id, normalise_code
 from sterilot.load.build import Load, LoadItem
 from sterilot.load.record import LoadRecord, LoadStatus
 from sterilot.load.release import ReleaseDecision, ReleaseKind
@@ -186,14 +186,14 @@ class LoadStore:
                 f"SELECT l.{_HEADER.replace(', ', ', l.')} FROM load_record l"
                 " JOIN sterilizer_cycle c ON c.lot = l.lot WHERE c.equipment_id = ?"
                 " ORDER BY c.run_date, c.run",
-                [equipment.upper()],
+                [equipment_id(equipment)],
             )
         else:
             found = self.db.query(
                 f"SELECT l.{_HEADER.replace(', ', ', l.')} FROM load_record l"
                 " JOIN sterilizer_cycle c ON c.lot = l.lot"
                 " WHERE c.equipment_id = ? AND c.run_date = ? ORDER BY c.run",
-                [equipment.upper(), rows.put_date(day)],
+                [equipment_id(equipment), rows.put_date(day)],
             )
         return tuple(self._build(row) for row in found)
 

@@ -126,3 +126,21 @@ def test_out_of_order_machines_are_listed() -> None:
     units.save_washer(machine())
     assert units.out_of_order() == ("AC-1",)
     units.db.close()
+
+
+def test_a_sterilizer_row_with_no_methods_is_refused() -> None:
+    units = store()
+    units.save_sterilizer(chamber())
+    units.db.execute("UPDATE equipment SET methods = '' WHERE equipment_id = ?", ["AC-1"])
+    with pytest.raises(ValidationError):
+        units.sterilizer("AC-1")
+    units.db.close()
+
+
+def test_a_retired_washer_keeps_its_window() -> None:
+    units = store()
+    units.save_washer(machine(in_service=DateRange(date(2019, 1, 1), date(2025, 1, 1))))
+    found = units.washer("WD-2")
+    assert not found.in_service_on(date(2025, 6, 1))
+    assert found.refusal_on(date(2025, 6, 1)) == "the machine is not in service"
+    units.db.close()

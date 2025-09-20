@@ -132,3 +132,7 @@ def test_the_build_list_puts_the_worst_shortfall_first() -> None:
 def test_a_full_shelf_needs_nothing_built() -> None:
     plan = StorageMap(pars=(ParLevel("ORT-MAJOR", 2, 5),))
     assert plan.build_list({"ORT-MAJOR": 5}) == ()
+
+
+def test_a_location_prints_its_label() -> None:
+    assert str(location()) == "ST-A1 sterile store rack A1"
