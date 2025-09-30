@@ -118,3 +118,90 @@ def test_a_saved_cycle_is_readable_through_the_load_store() -> None:
     with Store.in_memory() as store:
         store.cycles.register_equipment("AC-1", "sterilizer", "Amsco", "Steris")
         assert store.cycles.next_run("AC-1", date(2024, 12, 15)) == 1
+
+
+def test_a_load_item_naming_a_tray_nobody_registered_is_found() -> None:
+    with Store.in_memory() as store:
+        store.cycles.register_equipment("AC-1", "sterilizer", "Amsco", "Steris")
+        store.db.execute(
+            "INSERT INTO sterilizer_cycle (lot, equipment_id, run_date, run, cycle_name, method,"
+            " started_at, operator, hold_c, exposure_s)"
+            " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                "AC-1-20250922-01",
+                "AC-1",
+                "2025-09-22",
+                1,
+                "PREVAC-132",
+                "steam_prevac",
+                "2025-09-22T08:00:00",
+                "T-4471",
+                133.4,
+                240.0,
+            ],
+        )
+        store.db.execute(
+            "INSERT INTO load_record (reference, lot, method, built_by, built_at, status)"
+            " VALUES (?, ?, ?, ?, ?, ?)",
+            [
+                "LD-1",
+                "AC-1-20250922-01",
+                "steam_prevac",
+                "T-4471",
+                "2025-09-22T07:40:00",
+                "pending",
+            ],
+        )
+        store.db.execute(
+            "INSERT INTO load_item (reference, asset, code) VALUES (?, ?, ?)",
+            ["LD-1", "ORT-0114", "ORT-MAJOR"],
+        )
+        problems = store.health()
+        assert "load item names ORT-0114, which is not a registered tray" in problems
+
+
+def test_registering_the_tray_clears_the_finding() -> None:
+    with Store.in_memory() as store:
+        store.db.execute(
+            "INSERT INTO tray (asset, code, ownership) VALUES (?, ?, ?)",
+            ["ORT-0114", "ORT-MAJOR", "department"],
+        )
+        store.db.execute(
+            "INSERT INTO issue (asset, issued_at, case_number, issued_by, disposition)"
+            " VALUES (?, ?, ?, ?, ?)",
+            ["ORT-0114", "2025-09-22T09:00:00", "OR3-01", "T-4471", "open"],
+        )
+        assert store.health() == ()
+
+
+def test_an_issue_naming_an_unregistered_tray_is_found() -> None:
+    with Store.in_memory() as store:
+        store.db.execute(
+            "INSERT INTO issue (asset, issued_at, case_number, issued_by, disposition)"
+            " VALUES (?, ?, ?, ?, ?)",
+            ["ORT-9999", "2025-09-22T09:00:00", "OR3-01", "T-4471", "open"],
+        )
+        assert "issue names ORT-9999, which is not a registered tray" in store.health()
+
+
+def test_a_load_whose_cycle_has_gone_is_found() -> None:
+    with Store.in_memory() as store:
+        store.db.execute("PRAGMA foreign_keys = OFF")
+        store.db.execute(
+            "INSERT INTO load_record (reference, lot, method, built_by, built_at, status)"
+            " VALUES (?, ?, ?, ?, ?, ?)",
+            [
+                "LD-9",
+                "AC-1-20250922-09",
+                "steam_prevac",
+                "T-4471",
+                "2025-09-22T07:40:00",
+                "pending",
+            ],
+        )
+        assert "load LD-9 names a cycle that is not there" in store.health()
+
+
+def test_a_clean_store_still_reports_nothing() -> None:
+    with Store.in_memory() as store:
+        assert store.health() == ()

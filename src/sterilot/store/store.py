@@ -141,8 +141,38 @@ class Store:
             )
             return tuple(found)
         found.extend(self.db.integrity_problems())
+        found.extend(self._dangling())
         if not self.quality.audit_trail().intact():
             found.append("the audit trail has a break in it")
+        return tuple(found)
+
+    def _dangling(self) -> tuple[str, ...]:
+        """References the foreign keys do not cover.
+
+        A load item names a tray and an issue names a tray, and neither carries
+        a foreign key, because a tray can be retired and removed from the
+        register while the loads it was in have to stay. That is the right
+        trade, and it means nothing enforces the reference, so it is checked
+        here rather than assumed.
+        """
+        found: list[str] = []
+        for table, column, label in (
+            ("load_item", "asset", "load item"),
+            ("issue", "asset", "issue"),
+            ("package", "asset", "package"),
+        ):
+            rows = self.db.query(
+                f"SELECT DISTINCT {column} AS missing FROM {table}"
+                f" WHERE {column} NOT IN (SELECT asset FROM tray) ORDER BY {column}"
+            )
+            found.extend(
+                f"{label} names {row['missing']}, which is not a registered tray" for row in rows
+            )
+        orphans = self.db.query(
+            "SELECT reference FROM load_record WHERE lot NOT IN"
+            " (SELECT lot FROM sterilizer_cycle) ORDER BY reference"
+        )
+        found.extend(f"load {row['reference']} names a cycle that is not there" for row in orphans)
         return tuple(found)
 
     def close(self) -> None:

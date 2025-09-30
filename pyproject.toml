@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "sterilot"
-version = "0.1.0"
+version = "1.0.0"
 description = "Sterile processing records for a hospital central service department"
 readme = "README.md"
 requires-python = ">=3.12"

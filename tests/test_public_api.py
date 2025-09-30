@@ -7,6 +7,7 @@ deliberate one rather than a tidy up that looked harmless.
 
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -88,3 +89,15 @@ def test_an_unknown_name_is_not_exported() -> None:
     missing = "NotAThing"
     with pytest.raises(AttributeError):
         getattr(sterilot, missing)
+
+
+def test_the_package_and_the_wheel_agree_on_the_version() -> None:
+    """The number in the module and the number the build uses are one number.
+
+    They were two for one commit, and the console script would have reported a
+    version the wheel did not carry, which is exactly the sort of thing nobody
+    notices until somebody is trying to work out which build is on a machine.
+    """
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    declared = tomllib.loads(pyproject.read_text(encoding="utf-8"))["project"]["version"]
+    assert declared == sterilot.__version__
